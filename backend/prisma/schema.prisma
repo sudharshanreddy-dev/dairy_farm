@@ -1,0 +1,195 @@
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["driverAdapters"]
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+model Alert {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  type      String
+  message   String
+  severity  String   @default("Info")
+  relatedId Int?
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
+  User      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Cattle {
+  id                                 Int              @id @default(autoincrement())
+  userId                             Int
+  tagNumber                          String
+  name                               String?
+  breed                              String?
+  dateOfBirth                        DateTime?
+  gender                             String           @default("Female")
+  weight                             Float?
+  quality                            String           @default("Good")
+  purchasePrice                      Float            @default(0)
+  salePrice                          Float            @default(0)
+  purchaseDate                       DateTime?
+  damId                              Int?
+  sireId                             Int?
+  status                             String           @default("Active")
+  notes                              String?
+  createdAt                          DateTime         @default(now())
+  dam                                Cattle?          @relation("Cattle_damIdToCattle", fields: [damId], references: [id])
+  damOffspring                       Cattle[]         @relation("Cattle_damIdToCattle")
+  sire                               Cattle?          @relation("Cattle_sireIdToCattle", fields: [sireId], references: [id])
+  sireOffspring                      Cattle[]         @relation("Cattle_sireIdToCattle")
+  user                               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  healthRecords                      HealthRecord[]
+  milkRecords                        MilkProduction[]
+  vaccinations                       Vaccination[]
+
+  @@unique([userId, tagNumber])
+}
+
+model CommunityComment {
+  id            Int           @id @default(autoincrement())
+  postId        Int
+  content       String
+  author        String
+  createdAt     DateTime      @default(now())
+  post          CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+}
+
+model CommunityPost {
+  id               Int                @id @default(autoincrement())
+  title            String
+  content          String
+  author           String
+  category         String             @default("General")
+  createdAt        DateTime           @default(now())
+  comments         CommunityComment[]
+}
+
+model FeedingLog {
+  id            Int       @id @default(autoincrement())
+  userId        Int
+  inventoryId   Int
+  totalQuantity Float
+  cattleCount   Int
+  date          DateTime  @default(now())
+  notes         String?
+  createdAt     DateTime  @default(now())
+  inventory     Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model HealthRecord {
+  id        Int      @id @default(autoincrement())
+  userId    Int
+  cattleId  Int
+  date      DateTime
+  condition String
+  treatment String?
+  vetName   String?
+  status    String   @default("Ongoing")
+  cost      Float    @default(0)
+  notes     String?
+  createdAt DateTime @default(now())
+  cattle    Cattle   @relation(fields: [cattleId], references: [id], onDelete: Cascade)
+  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Inventory {
+  id                   Int                    @id @default(autoincrement())
+  userId               Int
+  itemName             String
+  category             String
+  quantity             Float                  @default(0)
+  unit                 String?
+  minQuantity          Float                  @default(0)
+  costPerUnit          Float                  @default(0)
+  supplier             String?
+  lastRestocked        DateTime?
+  expiryDate           DateTime?
+  notes                String?
+  createdAt            DateTime               @default(now())
+  FeedingLog           FeedingLog[]
+  User                 User                   @relation(fields: [userId], references: [id], onDelete: Cascade)
+  InventoryTransaction InventoryTransaction[]
+}
+
+model InventoryTransaction {
+  id          Int       @id @default(autoincrement())
+  userId      Int
+  inventoryId Int
+  type        String
+  quantity    Float
+  date        DateTime  @default(now())
+  notes       String?
+  createdAt   DateTime  @default(now())
+  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model MilkProduction {
+  id           Int      @id @default(autoincrement())
+  userId       Int
+  cattleId     Int
+  date         DateTime
+  morningYield Float    @default(0)
+  eveningYield Float    @default(0)
+  totalYield   Float    @default(0)
+  quality      String?
+  notes        String?
+  createdAt    DateTime @default(now())
+  cattle       Cattle   @relation(fields: [cattleId], references: [id], onDelete: Cascade)
+  user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model Sale {
+  id             Int      @id @default(autoincrement())
+  userId         Int
+  date           DateTime
+  buyerName      String?
+  quantityLiters Float    @default(0)
+  pricePerLiter  Float    @default(0)
+  totalAmount    Float    @default(0)
+  paymentStatus  String   @default("Paid")
+  paymentMethod  String   @default("Cash")
+  notes          String?
+  createdAt      DateTime @default(now())
+  user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+}
+
+model User {
+  id                   Int                    @id @default(autoincrement())
+  username             String                 @unique
+  passwordHash         String
+  fullName             String
+  farmName             String?
+  email                String?                @unique
+  role                 String                 @default("Farmer")
+  createdAt            DateTime               @default(now())
+  Alert                Alert[]
+  Cattle               Cattle[]
+  FeedingLog           FeedingLog[]
+  HealthRecord         HealthRecord[]
+  Inventory            Inventory[]
+  InventoryTransaction InventoryTransaction[]
+  MilkProduction       MilkProduction[]
+  Sale                 Sale[]
+  Vaccination          Vaccination[]
+}
+
+model Vaccination {
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  cattleId       Int
+  vaccineName    String
+  dateGiven      DateTime
+  nextDueDate    DateTime?
+  administeredBy String?
+  cost           Float     @default(0)
+  notes          String?
+  createdAt      DateTime  @default(now())
+  cattle         Cattle    @relation(fields: [cattleId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+}

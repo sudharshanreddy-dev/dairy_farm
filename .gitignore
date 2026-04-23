@@ -1,0 +1,46 @@
+# Ignore all files and folders in the root directory
+/*
+
+# Allow specific directories to be committed
+!backend/
+!frontend/
+
+# Allow specific root files
+!.gitignore
+!README.md
+
+# Allow everything inside the whitelisted folders
+!backend/**
+!frontend/**
+
+# Explicitly ignore Flask app and other root files
+/app.py
+/templates/
+/venv/
+/requirements.txt
+/dairy_farm.db
+/dairy_farm.db*
+/smart_dairy_farm/
+/reset_password.py
+/*.pdf
+/*.tex
+/*.aux
+/*.lof
+/*.log
+/*.lol
+/*.lot
+/*.out
+/*.toc
+/code_dump.md
+/documentation.md
+/report.html
+/scratch/
+
+# Standard ignores for both frontend and backend subdirectories
+**/node_modules/
+**/.env
+**/.env*.local
+**/.DS_Store
+**/dist/
+**/.expo/
+**/*.log
