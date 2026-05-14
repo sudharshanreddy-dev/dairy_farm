@@ -3,6 +3,7 @@ import {
   View, Text, StyleSheet, ScrollView, ActivityIndicator,
   TouchableOpacity, StatusBar, Share, Modal, Dimensions, Alert, Platform
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../src/context/ThemeContext';
 import api from '../../../src/api/axios';
@@ -92,6 +93,7 @@ export default function CattleDetail() {
   const { id } = useLocalSearchParams();
   const router = useRouter();
   const { colors, isDark } = useTheme();
+  const insets = useSafeAreaInsets();
   const [data, setData] = useState<any>(null);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState('info');
@@ -207,8 +209,8 @@ export default function CattleDetail() {
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} backgroundColor={colors.surface} />
       
       {/* Premium Header */}
-      <View style={[s.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.navigate('/(app)/cattle' as any)}>
+      <View style={[s.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top, height: 60 + insets.top }]}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[s.topTitle, { color: colors.text }]}>{data.name || 'Profile'}</Text>
@@ -285,6 +287,37 @@ export default function CattleDetail() {
                    <DetailItem label="Purchase Price" val={`₹${data.purchasePrice}`} colors={colors} />
                    <DetailItem label="Acquisition" val={data.purchaseDate ? new Date(data.purchaseDate).toLocaleDateString() : 'Self-reared'} colors={colors} />
                    <DetailItem label="Notes" val={data.notes || 'No specific notes recorded for this cattle.'} full colors={colors} />
+                </View>
+
+                {/* Prominent Action Buttons */}
+                <View style={s.actionSection}>
+                   <TouchableOpacity 
+                     style={[s.mainActionBtn, { backgroundColor: colors.surface2, borderColor: colors.border }]} 
+                     onPress={() => router.push(`/(app)/cattle/add?id=${id}` as any)}
+                   >
+                      <View style={[s.actionIconWrap, { backgroundColor: colors.blueDim }]}>
+                         <MaterialCommunityIcons name="pencil-outline" size={22} color={colors.blue} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                         <Text style={[s.actionTitle, { color: colors.text }]}>Edit Cattle Profile</Text>
+                         <Text style={[s.actionSub, { color: colors.muted }]}>Update breed, status, or notes</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
+                   </TouchableOpacity>
+
+                   <TouchableOpacity 
+                     style={[s.mainActionBtn, { backgroundColor: colors.surface2, borderColor: colors.border }]} 
+                     onPress={handleDelete}
+                   >
+                      <View style={[s.actionIconWrap, { backgroundColor: colors.redDim }]}>
+                         <MaterialCommunityIcons name="trash-can-outline" size={22} color={colors.red} />
+                      </View>
+                      <View style={{ flex: 1 }}>
+                         <Text style={[s.actionTitle, { color: colors.text }]}>Delete Record</Text>
+                         <Text style={[s.actionSub, { color: colors.muted }]}>Permanently remove from herd</Text>
+                      </View>
+                      <MaterialCommunityIcons name="chevron-right" size={20} color={colors.muted} />
+                   </TouchableOpacity>
                 </View>
              </View>
            )}
@@ -386,7 +419,7 @@ const HistorySection = ({ title, icon, colors, data, type }: any) => (
 const s = StyleSheet.create({
   flex: { flex: 1 },
   center: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, height: 60, borderBottomWidth: 1, paddingTop: 10 },
+  topBar: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', paddingHorizontal: 10, borderBottomWidth: 1 },
   topTitle: { fontSize: 16, fontWeight: '800' },
   iconBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
   backBtn: { padding: 12, borderRadius: 12, marginTop: 20 },
@@ -447,5 +480,10 @@ const s = StyleSheet.create({
   shareBtnText: { color: '#fff', fontSize: 16, fontWeight: '800' },
   miniExportBtn: { flexDirection: 'row', alignItems: 'center', gap: 6, paddingVertical: 6, paddingHorizontal: 12, borderRadius: 10 },
   miniExportText: { fontSize: 11, fontWeight: '700' },
+  actionSection: { marginTop: 24, gap: 12 },
+  mainActionBtn: { flexDirection: 'row', alignItems: 'center', padding: 16, borderRadius: 20, borderWidth: 1, gap: 16 },
+  actionIconWrap: { width: 44, height: 44, borderRadius: 14, alignItems: 'center', justifyContent: 'center' },
+  actionTitle: { fontSize: 16, fontWeight: '700' },
+  actionSub: { fontSize: 12, marginTop: 2 },
 });
 
