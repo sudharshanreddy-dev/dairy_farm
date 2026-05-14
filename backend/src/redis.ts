@@ -16,3 +16,15 @@ export const connectRedis = async () => {
     console.error('Failed to connect to Redis:', err);
   }
 };
+export const clearAnalyticsCache = async (userId: number) => {
+  try {
+    const pattern = `analytics:${userId}:*`;
+    const keys = await redisClient.keys(pattern);
+    if (keys.length > 0) {
+      await redisClient.del(keys);
+      console.log(`Cleared ${keys.length} analytics cache keys for user ${userId}`);
+    }
+  } catch (err) {
+    console.error('Failed to clear analytics cache:', err);
+  }
+};

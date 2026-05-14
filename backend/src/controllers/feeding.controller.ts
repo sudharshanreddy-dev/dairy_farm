@@ -1,5 +1,6 @@
 import { Request, Response } from "express";
 import { prisma } from "../db";
+import { clearAnalyticsCache } from "../redis";
 
 export const logBulkFeeding = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -12,6 +13,17 @@ export const logBulkFeeding = async (req: Request, res: Response): Promise<void>
     }
 
     const feedingDate = date ? new Date(date) : new Date();
+    
+    // Fetch current inventory price to lock it in the log
+    const inventory = await prisma.inventory.findUnique({
+      where: { id: Number(inventoryId) },
+      select: { costPerUnit: true }
+    });
+    
+    if (!inventory) {
+      res.status(404).json({ error: 'Inventory item not found' });
+      return;
+    }
 
     // 1. Create Feeding Log
     const log = await prisma.feedingLog.create({
@@ -21,7 +33,8 @@ export const logBulkFeeding = async (req: Request, res: Response): Promise<void>
         totalQuantity: Number(totalQuantity),
         cattleCount: Number(cattleCount || 0),
         notes,
-        date: feedingDate
+        date: feedingDate,
+        unitCostAtTime: inventory.costPerUnit
       }
     });
 
@@ -32,6 +45,8 @@ export const logBulkFeeding = async (req: Request, res: Response): Promise<void>
         inventoryId: Number(inventoryId),
         type: 'Out',
         quantity: Number(totalQuantity),
+        purpose: 'FEEDING',
+        unitCostAtTime: inventory.costPerUnit,
         notes: `Bulk feeding log #${log.id}`,
         date: feedingDate
       }
@@ -45,6 +60,9 @@ export const logBulkFeeding = async (req: Request, res: Response): Promise<void>
       }
     });
 
+    // Invalidate analytics cache
+    await clearAnalyticsCache(userId);
+    
     res.status(201).json(log);
   } catch (err) {
     console.error(err);

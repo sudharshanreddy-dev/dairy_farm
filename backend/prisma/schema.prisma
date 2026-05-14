@@ -50,38 +50,49 @@ model Cattle {
 }
 
 model CommunityComment {
-  id        Int           @id @default(autoincrement())
+  id        Int               @id @default(autoincrement())
   postId    Int
   content   String
-  author    String
-  createdAt DateTime      @default(now())
-  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  authorId  Int
+  createdAt DateTime          @default(now())
+  post      CommunityPost     @relation(fields: [postId], references: [id], onDelete: Cascade)
+  user      User              @relation(fields: [authorId], references: [id], onDelete: Cascade)
   parentId  Int?
-  parent    CommunityComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  parent    CommunityComment? @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
   replies   CommunityComment[] @relation("CommentReplies")
+
+  @@index([postId])
+  @@index([authorId])
 }
 
 model CommunityPost {
   id        Int                @id @default(autoincrement())
   title     String
   content   String
-  author    String
+  authorId  Int
   category  String             @default("General")
   createdAt DateTime           @default(now())
+  user      User               @relation(fields: [authorId], references: [id], onDelete: Cascade)
   comments  CommunityComment[]
+
+  @@index([authorId])
 }
 
 model FeedingLog {
-  id            Int       @id @default(autoincrement())
-  userId        Int
-  inventoryId   Int
-  totalQuantity Float
-  cattleCount   Int
-  date          DateTime  @default(now())
-  notes         String?
-  createdAt     DateTime  @default(now())
-  inventory     Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  user          User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             Int       @id @default(autoincrement())
+  userId         Int
+  inventoryId    Int
+  totalQuantity  Float
+  cattleCount    Int
+  date           DateTime  @default(now())
+  unitCostAtTime Float     // Required for historical accuracy
+  notes          String?
+  createdAt      DateTime  @default(now())
+  inventory      Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user           User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([inventoryId])
 }
 
 model HealthRecord {
@@ -98,6 +109,9 @@ model HealthRecord {
   createdAt DateTime @default(now())
   cattle    Cattle   @relation(fields: [cattleId], references: [id], onDelete: Cascade)
   user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([cattleId])
 }
 
 model Inventory {
@@ -119,17 +133,30 @@ model Inventory {
   InventoryTransaction InventoryTransaction[]
 }
 
+enum TransactionPurpose {
+  FEEDING
+  WASTAGE
+  SALE
+  TRANSFER
+  INITIAL
+}
+
 model InventoryTransaction {
-  id          Int       @id @default(autoincrement())
-  userId      Int
-  inventoryId Int
-  type        String
-  quantity    Float
-  date        DateTime  @default(now())
-  notes       String?
-  createdAt   DateTime  @default(now())
-  inventory   Inventory @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
-  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  id             Int                 @id @default(autoincrement())
+  userId         Int
+  inventoryId    Int
+  type           String
+  quantity       Float
+  date           DateTime            @default(now())
+  purpose        TransactionPurpose?
+  unitCostAtTime Float? // Historical cost at moment of transaction
+  notes          String?
+  createdAt      DateTime            @default(now())
+  inventory      Inventory           @relation(fields: [inventoryId], references: [id], onDelete: Cascade)
+  user           User                @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([inventoryId])
 }
 
 model MilkProduction {
@@ -145,6 +172,9 @@ model MilkProduction {
   createdAt    DateTime @default(now())
   cattle       Cattle   @relation(fields: [cattleId], references: [id], onDelete: Cascade)
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+  @@index([cattleId])
 }
 
 model Sale {
@@ -160,6 +190,32 @@ model Sale {
   notes          String?
   createdAt      DateTime @default(now())
   user           User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
+}
+
+enum ExpenseCategory {
+  ELECTRICITY
+  LABOUR
+  WATER
+  MAINTENANCE
+  RENT
+  INSURANCE
+  FUEL
+  OTHER
+}
+
+model FarmExpense {
+  id          Int             @id @default(autoincrement())
+  userId      Int
+  category    ExpenseCategory
+  amount      Float
+  date        DateTime
+  description String?
+  createdAt   DateTime        @default(now())
+  user        User            @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, date])
 }
 
 model User {
@@ -180,6 +236,9 @@ model User {
   MilkProduction       MilkProduction[]
   Sale                 Sale[]
   Vaccination          Vaccination[]
+  FarmExpense          FarmExpense[]
+  CommunityPost        CommunityPost[]
+  CommunityComment     CommunityComment[]
 }
 
 model Vaccination {

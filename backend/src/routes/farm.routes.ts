@@ -8,6 +8,7 @@ import { getAnalytics } from '../controllers/analytics.controller';
 import { listPosts, getPost, createPost, createComment } from '../controllers/community.controller';
 import { getDashboardStats } from '../controllers/dashboard.controller';
 import { listFeedingLogs, logBulkFeeding } from '../controllers/feeding.controller';
+import { listExpenses, createExpense, deleteExpense } from '../controllers/expense.controller';
 import { authenticate } from '../middlewares/auth.middleware';
 
 const router = Router();
@@ -43,6 +44,11 @@ router.get('/inventory/:inventoryId/transactions', authenticate, listTransaction
 router.get('/sales', authenticate, listSales as any);
 router.post('/sales', authenticate, createSale as any);
 router.delete('/sales/:id', authenticate, deleteSale as any);
+
+// Expenses
+router.get('/expenses', authenticate, listExpenses as any);
+router.post('/expenses', authenticate, createExpense as any);
+router.delete('/expenses/:id', authenticate, deleteExpense as any);
 
 // Alerts
 router.get('/alerts', authenticate, listAlerts as any);

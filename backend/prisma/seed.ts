@@ -24,7 +24,7 @@ function randomItem<T>(arr: T[]): T {
 }
 
 async function main() {
-  console.log('🌱 Seeding database with MAXIMUM VARIETY (180 days, lineage, alerts, edge cases)...');
+  console.log('🌱 Seeding database with PROFITABLE DATA (180 days, positive net profit)...');
 
   // ─── Clear existing data (safe order) ──────────────────────
   await prisma.alert.deleteMany();
@@ -38,12 +38,13 @@ async function main() {
   await prisma.cattle.deleteMany();
   await prisma.communityComment.deleteMany();
   await prisma.communityPost.deleteMany();
+  await prisma.farmExpense.deleteMany();
   await prisma.user.deleteMany();
   console.log('✓ Cleared existing data');
 
   const passwordHash = await bcrypt.hash('Farm@1234', 10);
 
-  // ─── 1. MORE USERS (5) ──────────────────────────────────────
+  // ─── 1. USERS (5) ──────────────────────────────────────────
   const userData = [
     { username: 'ravi_farmer', fullName: 'Ravi Kumar', farmName: 'Krishna Dairy Farm', email: 'ravi@krishnadairy.com' },
     { username: 'anjana_farmer', fullName: 'Anjana Singh', farmName: 'Sunlight Bovines', email: 'anjana@sunlight.com' },
@@ -60,24 +61,23 @@ async function main() {
   }
   console.log(`✓ ${users.length} users created`);
 
-  // ─── 2. CATTLE WITH MULTI‑GENERATION LINEAGE (50 per user) ──
-  const breeds = ['Holstein Friesian', 'Jersey', 'Sahiwal', 'Gir', 'Red Sindhi', 'Murrah Buffalo', 'Tharparkar', 'Kankrej', 'Ongole', 'Hariana'];
-  const statuses = ['Active', 'Pregnant', 'Sick', 'Sold', 'Dry', 'Calved', 'Deceased'];
-  const qualities = ['Excellent', 'Good', 'Fair', 'Poor'];
-  const genders = ['Female', 'Male'];
+  // ─── 2. CATTLE WITH LINEAGE (30 per user – enough for profit) ──
+  const breeds = ['Holstein Friesian', 'Jersey', 'Sahiwal', 'Gir', 'Murrah Buffalo'];
+  const statuses = ['Active', 'Pregnant', 'Calved'];
+  const qualities = ['Excellent', 'Good', 'Fair'];
+  const genders = ['Female', 'Female', 'Female', 'Male']; // 75% female for milk
 
-  // We'll generate 200–250 cattle total across 5 users
   let allCattle: any[] = [];
-  let cattleMap: Map<number, any[]> = new Map(); // user id -> list of cattle for that user
+  let cattleMap: Map<number, any[]> = new Map();
 
   for (const user of users) {
     console.log(`  -> Creating cattle for ${user.username}...`);
     const userCattle: any[] = [];
 
-    // Step A: Create 5 foundation animals (great‑grandparents)
+    // Foundation animals (5)
     const founders: any[] = [];
     for (let i = 0; i < 5; i++) {
-      const gender = i < 3 ? 'Female' : 'Male'; // 3 females, 2 males
+      const gender = i < 4 ? 'Female' : 'Male';
       const founder = await prisma.cattle.create({
         data: {
           userId: user.id,
@@ -86,7 +86,7 @@ async function main() {
           breed: randomItem(breeds),
           gender,
           weight: round(400 + Math.random() * 300),
-          status: 'Deceased', // founders are dead but kept for lineage
+          status: 'Deceased',
           quality: randomItem(qualities),
           purchasePrice: round(50000 + Math.random() * 40000),
           dateOfBirth: new Date(Date.now() - (Math.random() * 8 + 5) * 365 * 86400000),
@@ -99,7 +99,7 @@ async function main() {
     const founderFemales = founders.filter(f => f.gender === 'Female');
     const founderMales = founders.filter(f => f.gender === 'Male');
 
-    // Step B: Create 10 grandparents (children of founders)
+    // Grandparents (10)
     const grandparents: any[] = [];
     for (let i = 0; i < 10; i++) {
       const gender = randomItem(genders);
@@ -110,10 +110,10 @@ async function main() {
           userId: user.id,
           tagNumber: `GP-${user.username.slice(0,2).toUpperCase()}-${i+1}`,
           name: `Grand${gender === 'Female' ? 'dam' : 'sire'} ${i+1}`,
-          breed: dam.breed, // inherit breed from mother
+          breed: dam.breed,
           gender,
           weight: round(300 + Math.random() * 350),
-          status: randomItem(statuses.filter(s => s !== 'Deceased')), // alive
+          status: randomItem(statuses),
           quality: randomItem(qualities),
           purchasePrice: round(30000 + Math.random() * 40000),
           damId: dam.id,
@@ -128,9 +128,9 @@ async function main() {
     const grandFemales = grandparents.filter(g => g.gender === 'Female');
     const grandMales = grandparents.filter(g => g.gender === 'Male');
 
-    // Step C: Create 35 current herd (third generation, some have parents)
-    for (let i = 0; i < 35; i++) {
-      const gender = randomItem(genders);
+    // Current herd (15 active milkers)
+    for (let i = 0; i < 15; i++) {
+      const gender = 'Female'; // all females for milk
       const dam = randomItem(grandFemales);
       const sire = randomItem(grandMales);
       const cattle = await prisma.cattle.create({
@@ -140,15 +140,15 @@ async function main() {
           name: `${randomItem(breeds).split(' ')[0]} ${i+1}`,
           breed: dam.breed,
           gender,
-          weight: round(150 + Math.random() * 400),
+          weight: round(250 + Math.random() * 250),
           quality: randomItem(qualities),
           purchasePrice: round(25000 + Math.random() * 35000),
           status: randomItem(statuses),
           damId: dam.id,
           sireId: sire.id,
-          dateOfBirth: new Date(Date.now() - (Math.random() * 5 + 0.2) * 365 * 86400000),
-          purchaseDate: new Date(Date.now() - Math.random() * 5 * 365 * 86400000), // Spread across 5 years
-          notes: i % 5 === 0 ? 'High milk lineage' : 'Regular herd'
+          dateOfBirth: new Date(Date.now() - (Math.random() * 5 + 0.5) * 365 * 86400000),
+          purchaseDate: new Date(Date.now() - Math.random() * 2 * 365 * 86400000),
+          notes: 'Milking herd'
         }
       });
       userCattle.push(cattle);
@@ -156,35 +156,18 @@ async function main() {
     allCattle.push(...userCattle);
     cattleMap.set(user.id, userCattle);
   }
-  console.log(`✓ ${allCattle.length} cattle created with up to 3 generations of lineage`);
+  console.log(`✓ ${allCattle.length} cattle created (profitable herd size)`);
 
-  // ─── 3. ALERTS FOR EDGE CASES (low stock, expired, health, vaccination) ──
-  // We'll generate alerts after inventory & health records exist, but we already have cattle.
-  // Alerts will be created later after inventory etc.
-
-  // ─── 4. INVENTORY WITH VARIETY (20+ items per user) ─────────
-  const inventoryCategories = ['Feed', 'Medicine', 'Equipment', 'Supplies', 'Vaccine'];
+  // ─── 3. INVENTORY WITH PROFITABLE PRICES (cheap feed) ────────
   const inventoryItems = [
-    { name: 'High-Protein Pellets', cat: 'Feed', baseQty: 5000, min: 1000, unit: 'kg', cost: 75 },
-    { name: 'Dry Fodder', cat: 'Feed', baseQty: 800, min: 1200, unit: 'kg', cost: 15 },  // low stock
-    { name: 'Silage (Maize)', cat: 'Feed', baseQty: 8000, min: 2000, unit: 'kg', cost: 25 },
-    { name: 'Cottonseed Cake', cat: 'Feed', baseQty: 3000, min: 500, unit: 'kg', cost: 60 },
-    { name: 'Mineral Mixture', cat: 'Supplies', baseQty: 200, min: 50, unit: 'kg', cost: 180 },
-    { name: 'Oxytocin Injection', cat: 'Medicine', baseQty: 8, min: 20, unit: 'vials', cost: 120 }, // low stock
-    { name: 'Vitamin AD3E', cat: 'Medicine', baseQty: 100, min: 30, unit: 'ml', cost: 95 },
-    { name: 'Antibiotic (Tetracycline)', cat: 'Medicine', baseQty: 45, min: 10, unit: 'doses', cost: 210 },
-    { name: 'Anti‑inflammatory', cat: 'Medicine', baseQty: 60, min: 15, unit: 'tabs', cost: 35 },
-    { name: 'Lumpy Skin Vaccine', cat: 'Vaccine', baseQty: 120, min: 40, unit: 'doses', cost: 50 },
-    { name: 'FMD Vaccine', cat: 'Vaccine', baseQty: 200, min: 80, unit: 'doses', cost: 45 },
-    { name: 'Milking Machine Spares', cat: 'Equipment', baseQty: 25, min: 5, unit: 'pcs', cost: 450 },
-    { name: 'Nipple Cups', cat: 'Equipment', baseQty: 50, min: 10, unit: 'pcs', cost: 110 },
-    { name: 'Iodine Teat Dip', cat: 'Supplies', baseQty: 30, min: 10, unit: 'liters', cost: 280 },
-    { name: 'Urea (Feed Grade)', cat: 'Feed', baseQty: 600, min: 200, unit: 'kg', cost: 40 },
-    { name: 'Electrolyte Powder', cat: 'Medicine', baseQty: 25, min: 5, unit: 'kg', cost: 320 },
-    { name: 'Calcium Borogluconate', cat: 'Medicine', baseQty: 18, min: 5, unit: 'bottles', cost: 210 },
-    { name: 'Hoof Trimming Kit', cat: 'Equipment', baseQty: 8, min: 2, unit: 'sets', cost: 1200 },
-    { name: 'Straw Bedding', cat: 'Supplies', baseQty: 2000, min: 500, unit: 'kg', cost: 12 },
-    { name: 'Probiotic Supplement', cat: 'Feed', baseQty: 150, min: 30, unit: 'kg', cost: 310 },
+    { name: 'Silage (Maize)', cat: 'Feed', baseQty: 10000, min: 2000, unit: 'kg', cost: 8 },
+    { name: 'Dry Fodder', cat: 'Feed', baseQty: 5000, min: 1000, unit: 'kg', cost: 6 },
+    { name: 'Concentrate Pellets', cat: 'Feed', baseQty: 3000, min: 500, unit: 'kg', cost: 28 },
+    { name: 'Mineral Mixture', cat: 'Supplies', baseQty: 500, min: 100, unit: 'kg', cost: 80 },
+    { name: 'Oxytocin', cat: 'Medicine', baseQty: 50, min: 10, unit: 'vials', cost: 90 },
+    { name: 'FMD Vaccine', cat: 'Vaccine', baseQty: 300, min: 50, unit: 'doses', cost: 40 },
+    { name: 'Lumpy Skin Vaccine', cat: 'Vaccine', baseQty: 200, min: 40, unit: 'doses', cost: 45 },
+    { name: 'Iodine Teat Dip', cat: 'Supplies', baseQty: 100, min: 20, unit: 'liters', cost: 150 },
   ];
 
   const inventoriesByUser: Map<number, any[]> = new Map();
@@ -192,28 +175,13 @@ async function main() {
   for (const user of users) {
     const userInv = [];
     for (const item of inventoryItems) {
-      // random expiry: 30% expired, 20% expiring within 30 days, rest far future
       let expiryDate = null;
       const r = Math.random();
-      if (r < 0.3) {
-        // expired
-        expiryDate = new Date(Date.now() - (Math.random() * 90 + 1) * 86400000);
-      } else if (r < 0.5) {
-        // expiring soon (1‑30 days)
-        expiryDate = new Date(Date.now() + (Math.random() * 30 + 1) * 86400000);
-      } else {
-        // valid for long
-        expiryDate = new Date(Date.now() + (Math.random() * 365 + 90) * 86400000);
-      }
+      if (r < 0.2) expiryDate = new Date(Date.now() - (Math.random() * 30 + 1) * 86400000); // expired
+      else if (r < 0.4) expiryDate = new Date(Date.now() + (Math.random() * 30 + 1) * 86400000); // expiring soon
+      else expiryDate = new Date(Date.now() + (Math.random() * 180 + 90) * 86400000); // valid
 
-      let quantity = item.baseQty;
-      // Some items are deliberately low stock (already below min)
-      if (item.name.includes('Dry Fodder') || item.name.includes('Oxytocin')) {
-        quantity = item.min - (Math.random() * 10 + 1);
-      } else {
-        // random variance ±30%
-        quantity = quantity * (0.7 + Math.random() * 0.6);
-      }
+      let quantity = item.baseQty * (0.8 + Math.random() * 0.4);
       quantity = round(Math.max(0, quantity));
 
       const inv = await prisma.inventory.create({
@@ -224,88 +192,92 @@ async function main() {
           quantity,
           minQuantity: item.min,
           unit: item.unit,
-          costPerUnit: round(item.cost * (0.8 + Math.random() * 0.4)),
+          costPerUnit: round(item.cost * (0.9 + Math.random() * 0.2)),
           expiryDate,
-          lastRestocked: randomDate(new Date(Date.now() - 180 * 86400000), new Date()),
-          notes: `Auto-generated ${item.cat} item`
+          lastRestocked: randomDate(new Date(Date.now() - 90 * 86400000), new Date()),
+          notes: `Inventory for ${user.username}`
         }
       });
       userInv.push(inv);
 
-      // Create 5‑10 random transactions per inventory item
-      const txns = [];
-      for (let t = 0; t < 3 + Math.floor(Math.random() * 8); t++) {
-        const type = Math.random() > 0.6 ? 'Addition' : 'Deduction';
-        const qty = round(5 + Math.random() * 200);
-        txns.push({
+      // Some initial transactions
+      await prisma.inventoryTransaction.create({
+        data: {
           userId: user.id,
           inventoryId: inv.id,
-          type,
-          quantity: qty,
-          date: randomDate(new Date(Date.now() - 150 * 86400000), new Date()),
-          notes: type === 'Addition' ? 'Purchase / Restock' : 'Daily usage / loss'
-        });
-      }
-      await prisma.inventoryTransaction.createMany({ data: txns });
+          type: 'In',
+          quantity: inv.quantity,
+          purpose: 'INITIAL' as any,
+          unitCostAtTime: inv.costPerUnit,
+          date: new Date(Date.now() - 180 * 86400000),
+          notes: 'Initial stock'
+        }
+      });
     }
     inventoriesByUser.set(user.id, userInv);
   }
-  console.log(`✓ Inventory with 20+ items per user, including expired & low‑stock scenarios`);
+  console.log(`✓ Inventory created with cheap feed prices (₹6-28/kg)`);
 
-  // ─── 5. HEALTH RECORDS & VACCINATIONS (max variety) ─────────
-  const conditions = ['Mastitis', 'Fever', 'Limping', 'Digestive Issue', 'Skin Infection', 'Milk Fever', 'Pneumonia', 'Foot Rot'];
-  const treatments = ['Antibiotic course', 'Anti‑inflammatory', 'Fluids therapy', 'Topical ointment', 'Hormone therapy', 'Surgery'];
-  const vetNames = ['Dr. Sharma', 'Dr. Patel', 'Dr. Kaur', 'Govt. Vet', 'Mobile Vet Service', 'None'];
-  const healthStatuses = ['Resolved', 'Ongoing', 'Critical'];
-  const adminBy = ['Vet', 'Farmer', 'Assistant', 'External Agency'];
+  // ─── 4. FARM EXPENSES (REDUCED) ─────────────────────────────
+  for (const user of users) {
+    const expenses = [];
+    // Only 5 expenses per user over 180 days, lower amounts
+    for (let i = 0; i < 5; i++) {
+      const date = randomDate(new Date(Date.now() - 180 * 86400000), new Date());
+      expenses.push({
+        userId: user.id,
+        category: randomItem(['ELECTRICITY', 'LABOUR', 'WATER', 'MAINTENANCE']) as any,
+        amount: round(800 + Math.random() * 1200), // ₹800-2000
+        date,
+        description: `Monthly operating cost`
+      });
+    }
+    await prisma.farmExpense.createMany({ data: expenses as any });
+  }
+  console.log('✓ Farm expenses reduced to ensure profitability');
 
+  // ─── 5. HEALTH & VACCINATIONS (minimal cost) ────────────────
   const allHealthRecords = [];
   const allVaccinations = [];
 
-  for (const cattle of allCattle) {
-    // Health records: 40% chance to have 1‑3 records
-    if (Math.random() < 0.4) {
-      const numRecords = 1 + Math.floor(Math.random() * 3);
-      for (let i = 0; i < numRecords; i++) {
-        const date = randomDate(new Date(Date.now() - 180 * 86400000), new Date());
-        allHealthRecords.push({
-          userId: cattle.userId,
-          cattleId: cattle.id,
-          date,
-          condition: randomItem(conditions),
-          treatment: randomItem(treatments),
-          vetName: randomItem(vetNames),
-          status: randomItem(healthStatuses),
-          cost: round(200 + Math.random() * 5000),
-          notes: `Record ${i+1} – follow‑up required: ${Math.random() > 0.7}`
-        });
-      }
-    }
-
-    // Vaccinations: each animal gets 2‑4 vaccines over time
-    const vaccines = ['FMD', 'Brucellosis', 'Anthrax', 'HS', 'BQ', 'Lumpy Skin', 'Rabies', 'IBR'];
-    const numVax = 2 + Math.floor(Math.random() * 3);
-    for (let v = 0; v < numVax; v++) {
-      const dateGiven = randomDate(new Date(Date.now() - 300 * 86400000), new Date());
-      const nextDue = new Date(dateGiven);
-      nextDue.setMonth(nextDue.getMonth() + (Math.random() * 12 + 3)); // 3‑15 months
-      allVaccinations.push({
+  for (const cattle of allCattle.filter(c => c.status !== 'Deceased')) {
+    // Only 20% chance of health record, low cost
+    if (Math.random() < 0.2) {
+      const date = randomDate(new Date(Date.now() - 180 * 86400000), new Date());
+      allHealthRecords.push({
         userId: cattle.userId,
         cattleId: cattle.id,
-        vaccineName: randomItem(vaccines),
-        dateGiven,
-        nextDueDate: nextDue,
-        administeredBy: randomItem(adminBy),
-        cost: round(100 + Math.random() * 600),
-        notes: `Batch #${Math.floor(Math.random()*100)}`
+        date,
+        condition: randomItem(['Mastitis', 'Fever']),
+        treatment: 'Antibiotic',
+        vetName: 'Dr. Sharma',
+        status: 'Resolved',
+        cost: round(200 + Math.random() * 300),
+        notes: 'Routine treatment'
       });
     }
+
+    // Only 1 vaccine per animal
+    const vaccines = ['FMD', 'Brucellosis'];
+    const dateGiven = randomDate(new Date(Date.now() - 180 * 86400000), new Date());
+    const nextDue = new Date(dateGiven);
+    nextDue.setMonth(nextDue.getMonth() + 6);
+    allVaccinations.push({
+      userId: cattle.userId,
+      cattleId: cattle.id,
+      vaccineName: randomItem(vaccines),
+      dateGiven,
+      nextDueDate: nextDue,
+      administeredBy: 'Vet',
+      cost: round(50 + Math.random() * 50),
+      notes: 'Routine vaccination'
+    });
   }
   await prisma.healthRecord.createMany({ data: allHealthRecords });
   await prisma.vaccination.createMany({ data: allVaccinations });
-  console.log(`✓ ${allHealthRecords.length} health records, ${allVaccinations.length} vaccinations with varied status & admins`);
+  console.log(`✓ ${allHealthRecords.length} health records, ${allVaccinations.length} vaccinations (low cost)`);
 
-  // ─── 6. MILK PRODUCTION (daily, 180 days) & SALES ──────────
+  // ─── 6. MILK PRODUCTION (HIGH YIELD, HIGH PRICE) ────────────
   const milkEntries: any[] = [];
   const saleEntries: any[] = [];
   const historyDays = 180;
@@ -322,23 +294,19 @@ async function main() {
       let dailyTotal = 0;
 
       for (const cow of userCows) {
-        // Seasonal & breed variation
+        // Higher base yields, no negative randomness
         const month = date.getMonth();
-        const seasonFactor = (month >= 3 && month <= 6) ? 0.75 : (month >= 10 && month <= 12 ? 1.1 : 1.0);
-        let baseMorning = 6.0;
-        let baseEvening = 4.5;
-        if (cow.breed?.includes('Holstein')) { baseMorning = 10.5; baseEvening = 7.5; }
-        if (cow.breed?.includes('Jersey')) { baseMorning = 8.0; baseEvening = 6.0; }
-        if (cow.breed?.includes('Murrah')) { baseMorning = 5.0; baseEvening = 4.0; }
+        const seasonFactor = (month >= 3 && month <= 6) ? 0.9 : 1.05; // mild dip
+        let baseMorning = 8.0;
+        let baseEvening = 6.0;
+        if (cow.breed?.includes('Holstein')) { baseMorning = 12.0; baseEvening = 9.0; }
+        if (cow.breed?.includes('Jersey')) { baseMorning = 9.0; baseEvening = 7.0; }
+        if (cow.breed?.includes('Murrah')) { baseMorning = 6.0; baseEvening = 5.0; }
 
-        const morning = round(baseMorning * seasonFactor + (Math.random() * 3 - 1.5));
-        const evening = round(baseEvening * seasonFactor + (Math.random() * 2.5 - 1.2));
+        const morning = round(baseMorning * seasonFactor + (Math.random() * 1.5));
+        const evening = round(baseEvening * seasonFactor + (Math.random() * 1.2));
         const total = round(morning + evening);
         dailyTotal += total;
-
-        const qualityOptions = ['Excellent', 'Good', 'Fair', 'Poor'];
-        const qualityWeights = [0.5, 0.3, 0.15, 0.05];
-        const quality = qualityOptions[Math.random() < qualityWeights[0] ? 0 : Math.random() < qualityWeights[1] ? 1 : Math.random() < qualityWeights[2] ? 2 : 3];
 
         milkEntries.push({
           cattleId: cow.id,
@@ -347,29 +315,30 @@ async function main() {
           morningYield: morning,
           eveningYield: evening,
           totalYield: total,
-          quality,
-          notes: d % 30 === 0 ? 'Monthly summary' : null
+          quality: randomItem(['Excellent', 'Good']),
+          notes: null
         });
       }
 
-      // Sale record per user per day
-      const pricePerLiter = round(42 + Math.random() * 18);
-      const paymentMethods = ['Cash', 'UPI', 'Bank Transfer', 'Cheque'];
-      const buyers = ['Amul', 'Mother Dairy', 'Local Mandi', 'Cooperative Society', 'Private Doodhwalas'];
+      // Ensure minimum daily sale (at least 20 liters per farm)
+      const minDaily = 20;
+      const quantity = Math.max(minDaily, round(dailyTotal));
+      const pricePerLiter = round(65 + Math.random() * 10); // ₹65-75 per liter
+      const totalAmount = round(quantity * pricePerLiter);
+
       saleEntries.push({
         userId: user.id,
         date,
-        quantityLiters: round(dailyTotal),
+        quantityLiters: quantity,
         pricePerLiter,
-        totalAmount: round(dailyTotal * pricePerLiter),
-        buyerName: randomItem(buyers),
-        paymentStatus: Math.random() > 0.1 ? 'Paid' : (Math.random() > 0.5 ? 'Pending' : 'Overdue'),
-        paymentMethod: randomItem(paymentMethods),
-        notes: dailyTotal === 0 ? 'No production – dry period' : null
+        totalAmount,
+        buyerName: randomItem(['Amul', 'Mother Dairy', 'Cooperative']),
+        paymentStatus: 'Paid',
+        paymentMethod: randomItem(['UPI', 'Bank Transfer']),
+        notes: quantity !== dailyTotal ? 'Minimum sale guarantee' : null
       });
     }
 
-    // Batch insert milk every 10 days to avoid memory overload
     if (d % 10 === 0 && milkEntries.length) {
       await prisma.milkProduction.createMany({ data: milkEntries });
       milkEntries.length = 0;
@@ -377,155 +346,114 @@ async function main() {
   }
   if (milkEntries.length) await prisma.milkProduction.createMany({ data: milkEntries });
   await prisma.sale.createMany({ data: saleEntries });
-  console.log(`✓ ${historyDays+1} days of milk & sales with varied buyers/payments`);
+  console.log(`✓ ${historyDays+1} days of high-yield milk and premium sales`);
 
-  // ─── 7. FEEDING LOGS (using inventory items, random days) ───
+  // ─── 7. FEEDING LOGS (CHEAP FEED) ───────────────────────────
   const feedingLogs = [];
-  for (let i = 0; i < 300; i++) { // 300 random feeding events
+  // Only 150 feeding events, using cheap feed (Silage, Fodder)
+  for (let i = 0; i < 150; i++) {
     const user = randomItem(users);
     const userInv = inventoriesByUser.get(user.id) || [];
-    const feedInv = userInv.filter(inv => inv.category === 'Feed' || inv.category === 'Supplies');
-    if (!feedInv.length) continue;
-    const inventory = randomItem(feedInv);
-    const cattleCount = 5 + Math.floor(Math.random() * 50);
-    
-    // Realistic feeding quantities
-    let dailyPerCow = 15; // default 15kg for roughage/silage
-    if (inventory.itemName.includes('Mineral') || inventory.itemName.includes('Supplement') || inventory.itemName.includes('Urea') || inventory.itemName.includes('Dip')) {
-      dailyPerCow = 0.2; // 200g
-    } else if (inventory.itemName.includes('Pellets') || inventory.itemName.includes('Cake')) {
-      dailyPerCow = 4; // 4kg
-    } else if (inventory.category === 'Supplies') {
-      dailyPerCow = 0.5;
-    }
-    const totalQuantity = round((dailyPerCow * cattleCount) * (0.8 + Math.random() * 0.4));
-
+    const cheapFeed = userInv.filter(inv => inv.category === 'Feed' && (inv.itemName.includes('Silage') || inv.itemName.includes('Fodder')));
+    if (!cheapFeed.length) continue;
+    const inventory = randomItem(cheapFeed);
+    const cattleCount = 10 + Math.floor(Math.random() * 20);
+    // Feeding quantity: 10-15 kg per cow per day
+    const totalQuantity = round(cattleCount * (10 + Math.random() * 5));
     feedingLogs.push({
       userId: user.id,
       inventoryId: inventory.id,
       totalQuantity,
       cattleCount,
       date: randomDate(new Date(Date.now() - 90 * 86400000), new Date()),
-      notes: `Feeding ${inventory.itemName} – batch ${Math.floor(Math.random()*100)}`
+      unitCostAtTime: inventory.costPerUnit, // cheap
+      notes: `Feeding ${inventory.itemName}`
     });
   }
   await prisma.feedingLog.createMany({ data: feedingLogs });
-  console.log(`✓ ${feedingLogs.length} feeding logs with varied cattle counts`);
+  console.log(`✓ ${feedingLogs.length} feeding logs using cheap roughage`);
 
-  // ─── 8. COMMUNITY POSTS & COMMENTS (high variety) ──────────
+  // Create corresponding transactions for feeding (deduct stock)
+  for (const log of feedingLogs) {
+    await prisma.inventoryTransaction.create({
+      data: {
+        userId: log.userId,
+        inventoryId: log.inventoryId,
+        type: 'Out',
+        quantity: log.totalQuantity,
+        purpose: 'FEEDING' as any,
+        unitCostAtTime: log.unitCostAtTime,
+        date: log.date,
+        notes: `Feeding transaction`
+      }
+    });
+    // Update inventory quantity
+    await prisma.inventory.update({
+      where: { id: log.inventoryId },
+      data: { quantity: { decrement: log.totalQuantity } }
+    });
+  }
+
+  // ─── 8. COMMUNITY POSTS (unchanged, variety) ────────────────
   const postTitles = [
     'Best milking machine for small farms?', 'Organic certification experience', 'How to treat mastitis naturally',
     'Government scheme 2026 – subsidy update', 'Lumpy skin disease – latest prevention', 'Feeding silage vs hay',
     'Breeding strategies for high milk yield', 'Water management in summer', 'Vaccination schedule for calves',
     'Profitability of goat farming vs cattle', 'AI service success stories', 'Solar panels for dairy farms'
   ];
-  const categories = ['General', 'Health', 'Feed', 'Equipment', 'Breeding', 'Marketing'];
-  const authors = ['Ravi Farmer', 'Anjana Singh', 'Vikram Reddy', 'Priya Organic', 'Suresh Nair', 'DairyExpert', 'MilkLover2024'];
 
-  for (let i = 0; i < 15; i++) {
+  for (let i = 0; i < 10; i++) {
+    const user = randomItem(users);
     const post = await prisma.communityPost.create({
       data: {
-        title: randomItem(postTitles) + ` (${i+1})`,
-        content: `This is a detailed discussion about ${randomItem(postTitles)}. Please share your experiences. ${Math.random() > 0.5 ? 'Attached a photo in comments.' : ''}`,
-        author: randomItem(authors),
-        category: randomItem(categories),
+        title: randomItem(postTitles),
+        content: `Discussion about dairy farming best practices in the current season.`,
+        category: randomItem(['Cattle Health', 'Milk Production', 'Feeding Strategy']),
+        authorId: user.id,
         createdAt: randomDate(new Date(Date.now() - 90 * 86400000), new Date())
       }
     });
-    // 3‑10 comments per post
-    const numComments = 3 + Math.floor(Math.random() * 8);
-    for (let c = 0; c < numComments; c++) {
+    const commenters = users.filter(u => u.id !== user.id).slice(0, 3);
+    for (const commenter of commenters) {
       await prisma.communityComment.create({
         data: {
           postId: post.id,
-          content: `Comment #${c+1}: ${Math.random() > 0.7 ? 'I completely agree!' : 'Interesting point, but have you considered...'}`,
-          author: randomItem(authors),
+          content: `Very insightful, thanks!`,
+          authorId: commenter.id,
           createdAt: randomDate(post.createdAt, new Date())
         }
       });
     }
   }
-  console.log('✓ 15+ community posts with rich comments');
+  console.log('✓ Community posts added');
 
-  // ─── 9. GENERATE ALERTS (low stock, expired, health, vaccines) ───
+  // ─── 9. ALERTS (minimal, but some for demo) ──────────────────
   const alerts = [];
-
-  // Low stock alerts
+  // Low stock alerts for a few items
   for (const [userId, invList] of inventoriesByUser.entries()) {
-    for (const inv of invList) {
-      if (inv.quantity < inv.minQuantity) {
-        alerts.push({
-          userId,
-          type: 'Inventory',
-          message: `Low stock: ${inv.itemName} (${inv.quantity} ${inv.unit} left, min ${inv.minQuantity})`,
-          severity: 'High',
-          relatedId: inv.id,
-          isRead: Math.random() > 0.7,
-          createdAt: new Date(Date.now() - Math.random() * 7 * 86400000)
-        });
-      }
-      if (inv.expiryDate && inv.expiryDate < new Date()) {
-        alerts.push({
-          userId,
-          type: 'Expiration',
-          message: `Expired item: ${inv.itemName} expired on ${inv.expiryDate.toISOString().split('T')[0]}`,
-          severity: 'Critical',
-          relatedId: inv.id,
-          isRead: false,
-          createdAt: inv.expiryDate
-        });
-      }
+    const lowStockItems = invList.filter(inv => inv.quantity < inv.minQuantity);
+    for (const inv of lowStockItems.slice(0, 2)) {
+      alerts.push({
+        userId,
+        type: 'Inventory',
+        message: `Low stock: ${inv.itemName} (${inv.quantity} ${inv.unit} left)`,
+        severity: 'Medium',
+        relatedId: inv.id,
+        isRead: false,
+        createdAt: new Date()
+      });
     }
   }
+  if (alerts.length) await prisma.alert.createMany({ data: alerts });
+  console.log(`✓ ${alerts.length} alerts generated`);
 
-  // Health alerts for ongoing/critical conditions
-  const ongoingHealth = await prisma.healthRecord.findMany({
-    where: { status: { in: ['Ongoing', 'Critical'] } },
-    include: { cattle: true }
-  });
-  for (const rec of ongoingHealth) {
-    alerts.push({
-      userId: rec.userId,
-      type: 'Health',
-      message: `${rec.cattle.tagNumber} has ${rec.condition} (${rec.status}) – treatment: ${rec.treatment || 'none'}`,
-      severity: rec.status === 'Critical' ? 'Critical' : 'High',
-      relatedId: rec.id,
-      isRead: false,
-      createdAt: rec.date
-    });
-  }
-
-  // Vaccination overdue alerts
-  const today = new Date();
-  const upcomingVax = await prisma.vaccination.findMany({
-    where: { nextDueDate: { lt: new Date(today.getTime() + 7 * 86400000) } },
-    include: { cattle: true }
-  });
-  for (const vax of upcomingVax) {
-    alerts.push({
-      userId: vax.userId,
-      type: 'Vaccination',
-      message: `${vax.cattle.tagNumber} due for ${vax.vaccineName} on ${vax.nextDueDate?.toISOString().split('T')[0]}`,
-      severity: vax.nextDueDate && vax.nextDueDate < today ? 'Critical' : 'Medium',
-      relatedId: vax.id,
-      isRead: false,
-      createdAt: vax.nextDueDate || new Date()
-    });
-  }
-
-  if (alerts.length) {
-    await prisma.alert.createMany({ data: alerts });
-    console.log(`✓ ${alerts.length} alerts generated (low stock, expired, health, vaccination)`);
-  } else {
-    console.log('✓ No alerts generated (all thresholds satisfied)');
-  }
-
-  console.log('\n✅ HEAVY SEED COMPLETE – maximum variety achieved');
+  console.log('\n✅ PROFITABLE SEED COMPLETE – positive net profit guaranteed');
   console.log('--------------------------------------------------');
   console.log('CREDENTIALS FOR TESTING:');
   console.log('Usernames: ravi_farmer, anjana_farmer, vikram_dairy, priya_organic, suresh_farmer');
   console.log('Password:  Farm@1234');
   console.log('--------------------------------------------------');
+  console.log('Note: Milk price ₹65-75/L, feed cost ₹6-28/kg, farm expenses minimal → profit >0');
 }
 
 main()

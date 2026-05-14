@@ -1,10 +1,14 @@
 import { Request, Response } from "express";
 import { prisma } from "../db";
+
 export const listPosts = async (req: Request, res: Response): Promise<void> => {
   try {
     const posts = await prisma.communityPost.findMany({
       orderBy: { createdAt: 'desc' },
-      include: { _count: { select: { comments: true } } }
+      include: { 
+        user: { select: { fullName: true, username: true } },
+        _count: { select: { comments: true } } 
+      }
     });
     res.json(posts);
   } catch (err) {
@@ -17,7 +21,13 @@ export const getPost = async (req: Request, res: Response): Promise<void> => {
     const { id } = req.params;
     const post = await prisma.communityPost.findUnique({
       where: { id: Number(id) },
-      include: { comments: { orderBy: { createdAt: 'asc' } } }
+      include: { 
+        user: { select: { fullName: true, username: true } },
+        comments: { 
+          orderBy: { createdAt: 'asc' },
+          include: { user: { select: { fullName: true, username: true } } }
+        } 
+      }
     });
     if (!post) {
       res.status(404).json({ error: 'Post not found' });
@@ -37,8 +47,9 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
         title,
         content,
         category,
-        author: req.user!.fullName || req.user!.username || 'Anonymous'
-      }
+        authorId: req.user!.userId
+      },
+      include: { user: { select: { fullName: true, username: true } } }
     });
     res.status(201).json(post);
   } catch (err) {
@@ -55,8 +66,9 @@ export const createComment = async (req: Request, res: Response): Promise<void> 
         postId: Number(postId),
         content,
         parentId: parentId ? Number(parentId) : null,
-        author: req.user!.fullName || req.user!.username || 'Anonymous'
-      }
+        authorId: req.user!.userId
+      },
+      include: { user: { select: { fullName: true, username: true } } }
     });
     res.status(201).json(comment);
   } catch (err) {

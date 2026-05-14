@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db";
 import { milkSchema } from '../validators/farm.validator';
+import { clearAnalyticsCache } from "../redis";
 
 export const listMilk = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -58,6 +59,10 @@ export const createMilk = async (req: Request, res: Response): Promise<void> => 
         notes
       }
     });
+    
+    // Invalidate analytics cache
+    await clearAnalyticsCache(userId);
+    
     res.status(201).json(record);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -74,6 +79,10 @@ export const deleteMilk = async (req: Request, res: Response): Promise<void> => 
       return;
     }
     await prisma.milkProduction.delete({ where: { id: Number(id) } });
+    
+    // Invalidate analytics cache
+    await clearAnalyticsCache(userId);
+    
     res.json({ message: 'Deleted' });
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });

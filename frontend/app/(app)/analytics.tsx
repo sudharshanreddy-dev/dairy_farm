@@ -8,7 +8,8 @@ import api from '../../src/api/axios';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { saveAndShareFile } from '../../src/utils/export';
 import Toast from 'react-native-toast-message';
-import { Alert, TextInput, Modal } from 'react-native';
+import { Alert, TextInput, Modal, Platform } from 'react-native';
+import DateTimePicker from '@react-native-community/datetimepicker';
 
 const W = Dimensions.get('window').width;
 
@@ -43,11 +44,22 @@ export default function Analytics() {
   thirtyDaysAgo.setDate(today.getDate() - 30);
   
   const [dates, setDates] = useState({
-    start: thirtyDaysAgo.toISOString().split('T')[0],
-    end: today.toISOString().split('T')[0]
+    start_date: thirtyDaysAgo.toISOString().split('T')[0],
+    end_date: today.toISOString().split('T')[0]
   });
 
-  useEffect(() => { fetchData(); }, [dates]);
+  // Internal Date objects for the picker
+  const [filterDates, setFilterDates] = useState({
+    start: thirtyDaysAgo,
+    end: today
+  });
+
+  const [showStartPicker, setShowStartPicker] = useState(false);
+  const [showEndPicker, setShowEndPicker] = useState(false);
+
+  useEffect(() => { 
+    fetchData(); 
+  }, [dates]);
 
   const fetchData = async () => {
     setLoading(true);
@@ -56,6 +68,24 @@ export default function Analytics() {
       setData(resp.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
+  };
+
+  const applyFilters = () => {
+    setDates({
+      start_date: filterDates.start.toISOString().split('T')[0],
+      end_date: filterDates.end.toISOString().split('T')[0]
+    });
+    setShowFilters(false);
+  };
+
+  const onDateChange = (event: any, selectedDate: Date | undefined, type: 'start' | 'end') => {
+    if (Platform.OS === 'android') {
+      setShowStartPicker(false);
+      setShowEndPicker(false);
+    }
+    if (selectedDate) {
+      setFilterDates({ ...filterDates, [type]: selectedDate });
+    }
   };
 
   const handleExport = async () => {
@@ -86,13 +116,13 @@ export default function Analytics() {
   };
 
   const productionChart = {
-    labels: data?.productionData?.slice(-6).map((d: any) => d.month.slice(5)) || [],
-    datasets: [{ data: data?.productionData?.slice(-6).map((d: any) => d.total || 0) || [0] }],
+    labels: data?.productionData?.map((d: any) => d.month.slice(5)) || [],
+    datasets: [{ data: data?.productionData?.map((d: any) => d.total || 0) || [0] }],
   };
 
   const revenueChart = {
-    labels: data?.revenueTrend?.slice(-6).map((d: any) => d.month.slice(5)) || [],
-    datasets: [{ data: data?.revenueTrend?.slice(-6).map((d: any) => d.total || 0) || [0] }],
+    labels: data?.revenueTrend?.map((d: any) => d.month.slice(5)) || [],
+    datasets: [{ data: data?.revenueTrend?.map((d: any) => d.total || 0) || [0] }],
   };
 
   const cattleData = {
@@ -210,36 +240,97 @@ export default function Analytics() {
         </Card>
       </ScrollView>
 
-      {/* Date Filter Modal */}
       <Modal visible={showFilters} transparent animationType="fade" onRequestClose={() => setShowFilters(false)}>
-         <TouchableOpacity style={s.modalOverlay} activeOpacity={1} onPress={() => setShowFilters(false)}>
-            <View style={[s.modal, { backgroundColor: colors.surface, borderColor: colors.border }]}>
-               <Text style={[s.modalTitle, { color: colors.text }]}>Filter by Date Range</Text>
+         <View style={s.modalOverlay}>
+            <View 
+              style={[s.modal, { backgroundColor: colors.surface, borderColor: colors.border }]}
+            >
+               <View style={s.modalHeader}>
+                  <Text style={[s.modalTitle, { color: colors.text }]}>Filter by Date Range</Text>
+                  <TouchableOpacity onPress={() => setShowFilters(false)} style={s.closeBtn}>
+                     <FontAwesome5 name="times" size={18} color={colors.muted} />
+                  </TouchableOpacity>
+               </View>
                <View style={s.modalFields}>
                   <View style={{ flex: 1 }}>
                      <Text style={[s.label, { color: colors.muted }]}>Start Date</Text>
-                     <TextInput 
-                        style={[s.input, { backgroundColor: colors.surface2, color: colors.text, borderColor: colors.border }]} 
-                        value={dates.start}
-                        onChangeText={(v) => setDates({...dates, start: v})}
-                        placeholder="YYYY-MM-DD"
-                     />
+                     <TouchableOpacity 
+                        style={[s.input, { backgroundColor: colors.surface2, borderColor: colors.border, justifyContent: 'center' }]} 
+                        onPress={() => setShowStartPicker(true)}
+                     >
+                        <Text style={{ color: colors.text }}>{filterDates.start.toDateString()}</Text>
+                     </TouchableOpacity>
+                     {Platform.OS === 'web' && showStartPicker && (
+                        <input
+                           type="date"
+                           value={filterDates.start.toISOString().split('T')[0]}
+                           onChange={(e: any) => onDateChange({}, new Date(e.target.value), 'start')}
+                           style={{
+                              height: 40,
+                              marginTop: 10,
+                              borderRadius: 10,
+                              borderWidth: 1,
+                              padding: 10,
+                              backgroundColor: colors.surface2,
+                              color: colors.text,
+                              borderColor: colors.border
+                           }}
+                        />
+                     )}
+                     {Platform.OS !== 'web' && showStartPicker && (
+                        <DateTimePicker
+                          value={filterDates.start}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                          themeVariant={isDark ? 'dark' : 'light'}
+                          onChange={(e, d) => onDateChange(e, d, 'start')}
+                          maximumDate={filterDates.end}
+                        />
+                     )}
                   </View>
                   <View style={{ flex: 1 }}>
                      <Text style={[s.label, { color: colors.muted }]}>End Date</Text>
-                     <TextInput 
-                        style={[s.input, { backgroundColor: colors.surface2, color: colors.text, borderColor: colors.border }]} 
-                        value={dates.end}
-                        onChangeText={(v) => setDates({...dates, end: v})}
-                        placeholder="YYYY-MM-DD"
-                     />
+                     <TouchableOpacity 
+                        style={[s.input, { backgroundColor: colors.surface2, borderColor: colors.border, justifyContent: 'center' }]} 
+                        onPress={() => setShowEndPicker(true)}
+                     >
+                        <Text style={{ color: colors.text }}>{filterDates.end.toDateString()}</Text>
+                     </TouchableOpacity>
+                     {Platform.OS === 'web' && showEndPicker && (
+                        <input
+                           type="date"
+                           value={filterDates.end.toISOString().split('T')[0]}
+                           onChange={(e: any) => onDateChange({}, new Date(e.target.value), 'end')}
+                           style={{
+                              height: 40,
+                              marginTop: 10,
+                              borderRadius: 10,
+                              borderWidth: 1,
+                              padding: 10,
+                              backgroundColor: colors.surface2,
+                              color: colors.text,
+                              borderColor: colors.border
+                           }}
+                        />
+                     )}
+                     {Platform.OS !== 'web' && showEndPicker && (
+                        <DateTimePicker
+                          value={filterDates.end}
+                          mode="date"
+                          display={Platform.OS === 'ios' ? 'spinner' : 'calendar'}
+                          themeVariant={isDark ? 'dark' : 'light'}
+                          onChange={(e, d) => onDateChange(e, d, 'end')}
+                          minimumDate={filterDates.start}
+                          maximumDate={new Date()}
+                        />
+                     )}
                   </View>
                </View>
-               <TouchableOpacity style={[s.applyBtn, { backgroundColor: colors.green }]} onPress={() => setShowFilters(false)}>
+               <TouchableOpacity style={[s.applyBtn, { backgroundColor: colors.green }]} onPress={applyFilters}>
                   <Text style={s.applyText}>Apply Filters</Text>
                </TouchableOpacity>
             </View>
-         </TouchableOpacity>
+         </View>
       </Modal>
     </View>
   );
@@ -273,7 +364,9 @@ const s = StyleSheet.create({
   chart: { marginTop: 10, alignSelf: 'center', borderRadius: 16 },
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
   modal: { borderTopLeftRadius: 24, borderTopRightRadius: 24, padding: 24, paddingBottom: 40, borderWidth: 1 },
-  modalTitle: { fontSize: 18, fontWeight: '800', marginBottom: 20 },
+  modalTitle: { fontSize: 18, fontWeight: '800' },
+  modalHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 20 },
+  closeBtn: { padding: 5 },
   modalFields: { flexDirection: 'row', gap: 12, marginBottom: 20 },
   label: { fontSize: 12, fontWeight: '700', marginBottom: 6 },
   input: { height: 50, borderRadius: 12, borderWidth: 1, paddingHorizontal: 16, fontSize: 14 },

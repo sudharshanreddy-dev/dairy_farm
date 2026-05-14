@@ -10,6 +10,7 @@ const menuItems = [
   { title: 'Health Records', icon: 'medical-bag', desc: 'Track treatments', path: '/records/health', addPath: '/records/add-health', color: '#f85149' },
   { title: 'Vaccinations', icon: 'needle', desc: 'Vaccination schedule', path: '/records/vaccinations', addPath: '/records/add-vax', color: '#3fb950' },
   { title: 'Bulk Feeding', icon: 'barley', desc: 'Log group rations', path: '/records/bulk-feeding', addPath: '/records/bulk-feeding', color: '#bc8cff' },
+  { title: 'Operating Expenses', icon: 'wallet', desc: 'Labour, Power, Water', path: '/records/expenses', addPath: '/records/add-expense', color: '#bc8cff' },
   { title: 'Sales & Revenue', icon: 'cash-register', desc: 'Record transactions', path: '/records/sales', addPath: '/records/add-sale', color: '#d29922' },
 ];
 

@@ -55,54 +55,58 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
     });
     const vCost = vaxCosts._sum.cost || 0;
 
-    const cattleCosts = await prisma.cattle.aggregate({
-      where: { userId, purchaseDate: { gte: start, lte: end } },
-      _sum: { purchasePrice: true }
+    // General Operating Expenses (Labour, Electricity, etc.)
+    const farmExpenses = await prisma.farmExpense.aggregate({
+      where: { userId, date: { gte: start, lte: end } },
+      _sum: { amount: true }
     });
-    const cCost = cattleCosts._sum.purchasePrice || 0;
+    const gCost = farmExpenses._sum.amount || 0;
 
     const feedingLogs = await prisma.feedingLog.findMany({
       where: { userId, date: { gte: start, lte: end } },
       include: { inventory: { select: { costPerUnit: true } } }
     });
-    const fCost = feedingLogs.reduce((acc: number, log: any) => acc + (log.totalQuantity * log.inventory.costPerUnit), 0);
+    // Use historical price (unitCostAtTime is now required in schema)
+    const fCost = feedingLogs.reduce((acc: number, log: any) => 
+      acc + (log.totalQuantity * (log.unitCostAtTime || log.inventory.costPerUnit)), 0);
 
-    // 4. Manual Inventory Deductions (Wastage/Loss)
+    // 4. Manual Inventory Deductions (Wastage) - Reliable filtering using purpose enum
     const adjustments = await prisma.inventoryTransaction.findMany({
       where: { 
         userId, 
-        type: { in: ['Out', 'Deduction'] }, // Handle both naming conventions if any
-        date: { gte: start, lte: end },
-        notes: { not: { contains: 'Feeding' } } // Don't double count if feeding is logged here
+        type: 'Out', 
+        purpose: 'WASTAGE',
+        date: { gte: start, lte: end }
       },
       include: { inventory: { select: { costPerUnit: true } } }
     });
-    const aCost = adjustments.reduce((acc: number, tx: any) => acc + (tx.quantity * tx.inventory.costPerUnit), 0);
+    // Use historical unitCostAtTime if available for transactions
+    const aCost = adjustments.reduce((acc: number, tx: any) => 
+      acc + (tx.quantity * (tx.unitCostAtTime || tx.inventory.costPerUnit)), 0);
 
-    const totalExpenses = hCost + vCost + fCost + aCost; // Operating Expenses
+    const totalExpenses = hCost + vCost + fCost + aCost + gCost; 
     const netProfit = revenue - totalExpenses;
 
     const expenseBreakdown = [
       { label: 'Feed', value: fCost, color: '#FFD700' },
       { label: 'Medical', value: hCost, color: '#FF6B6B' },
       { label: 'Vaccination', value: vCost, color: '#4ECDC4' },
+      { label: 'Operating', value: gCost, color: '#bc8cff' }, 
       { label: 'Wastage', value: aCost, color: '#FFA500' }
     ];
 
     // Efficiency Metrics
-    const costPerLiter = totalYield > 0 ? (totalExpenses / totalYield) : 0;
+    const totalOperatingCost = totalExpenses;
+    const costPerLiter = totalYield > 0 ? (totalOperatingCost / totalYield) : 0;
     const feedEfficiency = totalYield > 0 ? (fCost / totalYield) : 0;
 
     // 4. Inventory Valuation (Asset Value)
     const allInventory = await prisma.inventory.findMany({ where: { userId } });
     const inventoryValue = allInventory.reduce((acc: number, item: any) => acc + (item.quantity * item.costPerUnit), 0);
 
-    // 5. Production Chart Data (Last 6 months)
-    const sixMonthsAgo = new Date();
-    sixMonthsAgo.setMonth(sixMonthsAgo.getMonth() - 6);
-    
+    // 5. Production Chart Data
     const milkRecords = await prisma.milkProduction.findMany({
-      where: { userId, date: { gte: sixMonthsAgo } },
+      where: { userId, date: { gte: start, lte: end } },
       select: { date: true, totalYield: true }
     });
 
@@ -112,9 +116,9 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
       monthlyProd[month] = (monthlyProd[month] || 0) + r.totalYield;
     });
 
-    // 6. Monthly Revenue Trend (Last 6 months)
+    // 6. Monthly Revenue Trend
     const salesHistory = await prisma.sale.findMany({
-      where: { userId, date: { gte: sixMonthsAgo } },
+      where: { userId, date: { gte: start, lte: end } },
       select: { date: true, totalAmount: true }
     });
     const monthlyRev: { [key: string]: number } = {};

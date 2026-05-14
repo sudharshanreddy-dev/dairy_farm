@@ -1,6 +1,7 @@
 import { Request, Response } from "express";
 import { prisma } from "../db";
 import { saleSchema } from '../validators/farm.validator';
+import { clearAnalyticsCache } from "../redis";
 
 export const listSales = async (req: Request, res: Response): Promise<void> => {
   try {
@@ -55,6 +56,10 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
         notes
       }
     });
+    
+    // Invalidate analytics cache
+    await clearAnalyticsCache(req.user!.userId);
+    
     res.status(201).json(record);
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });
@@ -65,6 +70,10 @@ export const deleteSale = async (req: Request, res: Response): Promise<void> => 
   try {
     const { id } = req.params;
     await prisma.sale.delete({ where: { id: Number(id), userId: req.user!.userId } });
+    
+    // Invalidate analytics cache
+    await clearAnalyticsCache(req.user!.userId);
+    
     res.status(204).send();
   } catch (err) {
     res.status(500).json({ error: 'Internal server error' });

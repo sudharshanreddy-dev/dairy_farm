@@ -11,11 +11,6 @@ export const listInventory = async (req: Request, res: Response): Promise<void> 
     const where: any = { userId };
     if (category) where.category = category;
     
-    // Use raw query or logic for low stock if it depends on a field comparison
-    // In Prisma, we can use the 'lt' operator with fields in some versions, 
-    // but here we might need to handle it or use a separate logic.
-    // For simplicity, let's filter if lowStock is 'true'.
-    
     const orderBy: any = {};
     if (sortBy) {
       orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
@@ -67,6 +62,8 @@ export const createInventory = async (req: Request, res: Response): Promise<void
         inventoryId: item.id,
         type: 'In',
         quantity: item.quantity,
+        purpose: 'INITIAL',
+        unitCostAtTime: item.costPerUnit,
         notes: 'Initial stock'
       }
     });
@@ -104,11 +101,13 @@ export const updateInventory = async (req: Request, res: Response): Promise<void
           inventoryId: item.id,
           type: diff > 0 ? 'In' : 'Out',
           quantity: Math.abs(diff),
+          purpose: req.body.purpose || (diff < 0 ? 'WASTAGE' : 'TRANSFER'),
+          unitCostAtTime: item.costPerUnit,
           notes: req.body.notes || 'Manual update'
         }
       });
 
-      // Check for low stock alert (Chapter 8 & 10 claim)
+      // Check for low stock alert
       if (item.quantity <= item.minQuantity && (oldItem.quantity > oldItem.minQuantity || diff < 0)) {
         await NotificationService.sendNotification(
           userId,
