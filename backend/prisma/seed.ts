@@ -24,7 +24,7 @@ function randomItem<T>(arr: T[]): T {
 }
 
 async function main() {
-  console.log('🌱 Seeding database with PROFITABLE DATA (180 days, positive net profit)...');
+  console.log('🌱 Seeding database with PROFITABLE DATA (3 farmers, 180 days, positive net profit)...');
 
   // ─── Clear existing data (safe order) ──────────────────────
   await prisma.alert.deleteMany();
@@ -44,13 +44,11 @@ async function main() {
 
   const passwordHash = await bcrypt.hash('Farm@1234', 10);
 
-  // ─── 1. USERS (5) ──────────────────────────────────────────
+  // ─── 1. USERS (3 farmers only) ──────────────────────────────
   const userData = [
     { username: 'ravi_farmer', fullName: 'Ravi Kumar', farmName: 'Krishna Dairy Farm', email: 'ravi@krishnadairy.com' },
     { username: 'anjana_farmer', fullName: 'Anjana Singh', farmName: 'Sunlight Bovines', email: 'anjana@sunlight.com' },
     { username: 'vikram_dairy', fullName: 'Vikram Reddy', farmName: 'Green Pastures', email: 'vikram@greenpastures.com' },
-    { username: 'priya_organic', fullName: 'Priya Mehta', farmName: 'Organic Milk Haven', email: 'priya@organichaven.com' },
-    { username: 'suresh_farmer', fullName: 'Suresh Nair', farmName: 'Malabar Dairy', email: 'suresh@malabardairy.com' },
   ];
 
   const users = [];
@@ -394,7 +392,7 @@ async function main() {
     });
   }
 
-  // ─── 8. COMMUNITY POSTS (unchanged, variety) ────────────────
+  // ─── 8. COMMUNITY POSTS (variety) ───────────────────────────
   const postTitles = [
     'Best milking machine for small farms?', 'Organic certification experience', 'How to treat mastitis naturally',
     'Government scheme 2026 – subsidy update', 'Lumpy skin disease – latest prevention', 'Feeding silage vs hay',
@@ -427,7 +425,7 @@ async function main() {
   }
   console.log('✓ Community posts added');
 
-  // ─── 9. ALERTS (minimal, but some for demo) ──────────────────
+  // ─── 9. ALERTS (variety, but not overwhelming) ───────────────
   const alerts = [];
   // Low stock alerts for a few items
   for (const [userId, invList] of inventoriesByUser.entries()) {
@@ -444,13 +442,28 @@ async function main() {
       });
     }
   }
+  // Also add some expiry alerts
+  for (const [userId, invList] of inventoriesByUser.entries()) {
+    const expiredItems = invList.filter(inv => inv.expiryDate && inv.expiryDate < new Date());
+    for (const inv of expiredItems.slice(0, 1)) {
+      alerts.push({
+        userId,
+        type: 'Expiration',
+        message: `Expired: ${inv.itemName} expired on ${inv.expiryDate?.toISOString().split('T')[0]}`,
+        severity: 'Critical',
+        relatedId: inv.id,
+        isRead: false,
+        createdAt: inv.expiryDate || new Date()
+      });
+    }
+  }
   if (alerts.length) await prisma.alert.createMany({ data: alerts });
-  console.log(`✓ ${alerts.length} alerts generated`);
+  console.log(`✓ ${alerts.length} alerts generated (low stock & expiry)`);
 
   console.log('\n✅ PROFITABLE SEED COMPLETE – positive net profit guaranteed');
   console.log('--------------------------------------------------');
   console.log('CREDENTIALS FOR TESTING:');
-  console.log('Usernames: ravi_farmer, anjana_farmer, vikram_dairy, priya_organic, suresh_farmer');
+  console.log('Usernames: ravi_farmer, anjana_farmer, vikram_dairy');
   console.log('Password:  Farm@1234');
   console.log('--------------------------------------------------');
   console.log('Note: Milk price ₹65-75/L, feed cost ₹6-28/kg, farm expenses minimal → profit >0');
