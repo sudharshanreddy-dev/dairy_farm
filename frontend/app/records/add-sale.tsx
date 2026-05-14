@@ -38,7 +38,7 @@ export default function AddSale() {
         totalAmount: total,
       });
       Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Sale recorded!' });
-      router.back();
+      router.push('/records/sales');
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save sale record.' });
     } finally {
@@ -55,7 +55,7 @@ export default function AddSale() {
 
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/sales')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <View>

@@ -87,7 +87,7 @@ export default function CommunityDetail() {
       
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/(app)/community')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[s.title, { color: colors.text }]} numberOfLines={1}>Discussion</Text>
@@ -169,6 +169,9 @@ export default function CommunityDetail() {
 
 const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }: any) => {
   const isAuthor = comment.author === postAuthor;
+  const [expanded, setExpanded] = useState(false);
+  const hasReplies = comment.replies && comment.replies.length > 0;
+
   return (
     <View style={[{ paddingLeft: depth > 0 ? 16 : 0 }, depth > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border, marginLeft: 8 }]}>
       <View style={[s.commentCard, depth > 0 && { borderBottomWidth: 0, paddingVertical: 12 }]}>
@@ -180,11 +183,20 @@ const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }
             <Text style={[s.commentDate, { color: colors.muted }]}>{getRelativeTime(comment.createdAt)}</Text>
          </View>
          <Text style={[s.commentText, { color: colors.text }]}>{comment.content}</Text>
-         <TouchableOpacity onPress={() => onReply(comment)} style={{ marginTop: 8 }}>
-            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>Reply</Text>
-         </TouchableOpacity>
+         <View style={{ flexDirection: 'row', alignItems: 'center', marginTop: 8, gap: 16 }}>
+           <TouchableOpacity onPress={() => onReply(comment)}>
+              <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>Reply</Text>
+           </TouchableOpacity>
+           {hasReplies && (
+             <TouchableOpacity onPress={() => setExpanded(!expanded)}>
+                <Text style={{ color: colors.accent, fontSize: 12, fontWeight: '700' }}>
+                  {expanded ? 'Hide replies' : `Show ${comment.replies.length} ${comment.replies.length === 1 ? 'reply' : 'replies'}`}
+                </Text>
+             </TouchableOpacity>
+           )}
+         </View>
       </View>
-      {comment.replies && comment.replies.map((reply: any) => (
+      {expanded && hasReplies && comment.replies.map((reply: any) => (
         <CommentItem key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} postAuthor={postAuthor} colors={colors} isDark={isDark} />
       ))}
     </View>

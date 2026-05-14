@@ -202,7 +202,7 @@ export default function CattleDetail() {
   if (!data) return (
     <View style={[s.center, { backgroundColor: colors.bg }]}>
       <Text style={{ color: colors.text }}>Cattle not found</Text>
-      <TouchableOpacity style={[s.backBtn, { backgroundColor: colors.green }]} onPress={() => router.back()}><Text style={{ color: '#fff' }}>Go Back</Text></TouchableOpacity>
+      <TouchableOpacity style={[s.backBtn, { backgroundColor: colors.green }]} onPress={() => router.push('/(app)/cattle')}><Text style={{ color: '#fff' }}>Go Back</Text></TouchableOpacity>
     </View>
   );
 
@@ -212,7 +212,7 @@ export default function CattleDetail() {
       
       {/* Premium Header */}
       <View style={[s.topBar, { backgroundColor: colors.surface, borderBottomColor: colors.border, paddingTop: insets.top, height: 60 + insets.top }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/(app)/cattle')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[s.topTitle, { color: colors.text }]}>{data.name || 'Profile'}</Text>

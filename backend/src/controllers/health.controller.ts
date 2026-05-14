@@ -17,13 +17,33 @@ const vaccinationSchema = Joi.object({
 // Health Records
 export const listHealth = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = req.user!.userId;
+    const { cattleId, status, startDate, endDate, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (cattleId) where.cattleId = Number(cattleId);
+    if (status) where.status = status;
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate as string);
+      if (endDate) where.date.lte = new Date(endDate as string);
+    }
+
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.date = 'desc';
+    }
+
     const records = await prisma.healthRecord.findMany({
-      where: { userId: req.user!.userId },
+      where,
       include: { cattle: { select: { name: true, tagNumber: true } } },
-      orderBy: { date: 'desc' }
+      orderBy
     });
     res.json(records);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };
@@ -53,13 +73,32 @@ export const createHealth = async (req: Request, res: Response): Promise<void> =
 // Vaccinations
 export const listVaccinations = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = req.user!.userId;
+    const { cattleId, startDate, endDate, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (cattleId) where.cattleId = Number(cattleId);
+    if (startDate || endDate) {
+      where.dateGiven = {};
+      if (startDate) where.dateGiven.gte = new Date(startDate as string);
+      if (endDate) where.dateGiven.lte = new Date(endDate as string);
+    }
+
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.dateGiven = 'desc';
+    }
+
     const records = await prisma.vaccination.findMany({
-      where: { userId: req.user!.userId },
+      where,
       include: { cattle: { select: { name: true, tagNumber: true } } },
-      orderBy: { dateGiven: 'desc' }
+      orderBy
     });
     res.json(records);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

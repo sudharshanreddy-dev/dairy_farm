@@ -5,12 +5,36 @@ import { NotificationService } from "../services/notification.service";
 
 export const listInventory = async (req: Request, res: Response): Promise<void> => {
   try {
-    const items = await prisma.inventory.findMany({
-      where: { userId: req.user!.userId },
-      orderBy: { itemName: 'asc' }
+    const userId = req.user!.userId;
+    const { category, lowStock, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (category) where.category = category;
+    
+    // Use raw query or logic for low stock if it depends on a field comparison
+    // In Prisma, we can use the 'lt' operator with fields in some versions, 
+    // but here we might need to handle it or use a separate logic.
+    // For simplicity, let's filter if lowStock is 'true'.
+    
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.itemName = 'asc';
+    }
+
+    let items = await prisma.inventory.findMany({
+      where,
+      orderBy
     });
+
+    if (lowStock === 'true') {
+      items = items.filter(item => item.quantity <= item.minQuantity);
+    }
+
     res.json(items);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

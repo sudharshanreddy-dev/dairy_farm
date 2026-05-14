@@ -40,7 +40,7 @@ export default function AddMilk() {
         eveningYield: parseFloat(form.eveningYield) || 0,
       });
       Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Milk record saved!' });
-      router.back();
+      router.push('/records/milk');
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save record. Check the details and try again.' });
     } finally {
@@ -57,7 +57,7 @@ export default function AddMilk() {
 
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/milk')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <View>

@@ -4,12 +4,32 @@ import { saleSchema } from '../validators/farm.validator';
 
 export const listSales = async (req: Request, res: Response): Promise<void> => {
   try {
+    const userId = req.user!.userId;
+    const { paymentStatus, buyerName, startDate, endDate, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (paymentStatus) where.paymentStatus = paymentStatus;
+    if (buyerName) where.buyerName = { contains: buyerName as string, mode: 'insensitive' };
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate as string);
+      if (endDate) where.date.lte = new Date(endDate as string);
+    }
+
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.date = 'desc';
+    }
+
     const records = await prisma.sale.findMany({
-      where: { userId: req.user!.userId },
-      orderBy: { date: 'desc' }
+      where,
+      orderBy
     });
     res.json(records);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

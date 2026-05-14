@@ -5,13 +5,32 @@ import { milkSchema } from '../validators/farm.validator';
 export const listMilk = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
+    const { cattleId, quality, startDate, endDate, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (cattleId) where.cattleId = Number(cattleId);
+    if (quality) where.quality = quality;
+    if (startDate || endDate) {
+      where.date = {};
+      if (startDate) where.date.gte = new Date(startDate as string);
+      if (endDate) where.date.lte = new Date(endDate as string);
+    }
+
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.date = 'desc';
+    }
+
     const records = await prisma.milkProduction.findMany({
-      where: { userId },
+      where,
       include: { cattle: { select: { name: true, tagNumber: true } } },
-      orderBy: { date: 'desc' }
+      orderBy
     });
     res.json(records);
   } catch (err) {
+    console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
 };

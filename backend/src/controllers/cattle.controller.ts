@@ -156,7 +156,25 @@ export const getCattleShareInfo = async (req: Request, res: Response): Promise<v
 export const listCattle = async (req: Request, res: Response): Promise<void> => {
   try {
     const userId = req.user!.userId;
-    const cattle = await prisma.cattle.findMany({ where: { userId } });
+    const { breed, status, gender, quality, sortBy, order } = req.query;
+
+    const where: any = { userId };
+    if (breed) where.breed = breed;
+    if (status) where.status = status;
+    if (gender) where.gender = gender;
+    if (quality) where.quality = quality;
+
+    const orderBy: any = {};
+    if (sortBy) {
+      orderBy[sortBy as string] = order === 'asc' ? 'asc' : 'desc';
+    } else {
+      orderBy.createdAt = 'desc';
+    }
+
+    const cattle = await prisma.cattle.findMany({ 
+      where,
+      orderBy 
+    });
     res.json(cattle);
   } catch (err) {
     console.error(err);

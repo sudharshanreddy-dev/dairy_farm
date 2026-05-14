@@ -6,18 +6,21 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import FilterModal, { FilterSection } from '../../src/components/FilterModal';
 
 export default function HealthRecords() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { fetchRecords(); }, [filters]);
 
   const fetchRecords = async () => {
     try {
-      const resp = await api.get('farm/health');
+      const resp = await api.get('farm/health', { params: filters });
       setRecords(resp.data);
     } catch (e) {
       console.error(e);
@@ -25,6 +28,28 @@ export default function HealthRecords() {
       setLoading(false);
     }
   };
+
+  const HEALTH_SECTIONS: FilterSection[] = [
+    {
+      title: 'Sort By',
+      key: 'sortBy',
+      type: 'select',
+      options: [
+        { label: 'Date', value: 'date' },
+        { label: 'Cost', value: 'cost' },
+      ]
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      type: 'select',
+      options: [
+        { label: 'Ongoing', value: 'Ongoing' },
+        { label: 'Critical', value: 'Critical' },
+        { label: 'Resolved', value: 'Resolved' },
+      ]
+    }
+  ];
 
   const ongoingCount = records.filter(r => r.status === 'Ongoing' || r.status === 'Critical').length;
 
@@ -81,16 +106,21 @@ export default function HealthRecords() {
 
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/(app)/records')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <View>
           <Text style={[s.title, { color: colors.text }]}>Health Records</Text>
           <Text style={[s.subtitle, { color: colors.muted }]}>{records.length} total · {ongoingCount} active</Text>
         </View>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-health' as any)}>
-          <MaterialCommunityIcons name="plus" size={24} color={colors.red} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity style={s.iconBtn} onPress={() => setFilterVisible(true)}>
+            <MaterialCommunityIcons name="filter-variant" size={24} color={Object.keys(filters).length > 0 ? colors.red : colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-health' as any)}>
+            <MaterialCommunityIcons name="plus" size={24} color={colors.red} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -113,6 +143,15 @@ export default function HealthRecords() {
           }
         />
       )}
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        sections={HEALTH_SECTIONS}
+        filters={filters}
+        onApply={setFilters}
+        onClear={() => setFilters({})}
+      />
     </View>
   );
 }

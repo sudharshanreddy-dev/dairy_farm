@@ -9,6 +9,10 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
 
     const start = start_date ? new Date(start_date) : new Date(new Date().setDate(new Date().getDate() - 30));
     const end = end_date ? new Date(end_date) : new Date();
+    
+    // Set start to beginning of day, end to end of day for full coverage
+    start.setHours(0, 0, 0, 0);
+    end.setHours(23, 59, 59, 999);
 
     const cacheKey = `analytics:${userId}:${start.getTime()}:${end.getTime()}`;
 
@@ -63,14 +67,26 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
     });
     const fCost = feedingLogs.reduce((acc: number, log: any) => acc + (log.totalQuantity * log.inventory.costPerUnit), 0);
 
-    const totalExpenses = hCost + vCost + cCost + fCost;
+    // 4. Manual Inventory Deductions (Wastage/Loss)
+    const adjustments = await prisma.inventoryTransaction.findMany({
+      where: { 
+        userId, 
+        type: { in: ['Out', 'Deduction'] }, // Handle both naming conventions if any
+        date: { gte: start, lte: end },
+        notes: { not: { contains: 'Feeding' } } // Don't double count if feeding is logged here
+      },
+      include: { inventory: { select: { costPerUnit: true } } }
+    });
+    const aCost = adjustments.reduce((acc: number, tx: any) => acc + (tx.quantity * tx.inventory.costPerUnit), 0);
+
+    const totalExpenses = hCost + vCost + fCost + aCost; // Operating Expenses
     const netProfit = revenue - totalExpenses;
 
     const expenseBreakdown = [
       { label: 'Feed', value: fCost, color: '#FFD700' },
       { label: 'Medical', value: hCost, color: '#FF6B6B' },
       { label: 'Vaccination', value: vCost, color: '#4ECDC4' },
-      { label: 'Cattle Purchase', value: cCost, color: '#45B7D1' }
+      { label: 'Wastage', value: aCost, color: '#FFA500' }
     ];
 
     // Efficiency Metrics

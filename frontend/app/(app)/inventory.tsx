@@ -8,6 +8,7 @@ import api from '../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
+import FilterModal, { FilterSection } from '../../src/components/FilterModal';
 
 const W = Dimensions.get('window').width;
 
@@ -17,14 +18,16 @@ export default function Inventory() {
   const [items, setItems] = useState([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
   const s = makeStyles(colors);
 
-  useEffect(() => { fetchInventory(); }, []);
+  useEffect(() => { fetchInventory(); }, [filters]);
 
   const fetchInventory = async () => {
     try {
-      const resp = await api.get('/farm/inventory');
+      const resp = await api.get('/farm/inventory', { params: filters });
       setItems(resp.data);
     } catch (e) {
       console.error(e);
@@ -33,6 +36,39 @@ export default function Inventory() {
       setRefreshing(false);
     }
   };
+
+  const INVENTORY_SECTIONS: FilterSection[] = [
+    {
+      title: 'Sort By',
+      key: 'sortBy',
+      type: 'select',
+      options: [
+        { label: 'Name (A-Z)', value: 'itemName' },
+        { label: 'Quantity', value: 'quantity' },
+        { label: 'Expiry Date', value: 'expiryDate' },
+      ]
+    },
+    {
+      title: 'Category',
+      key: 'category',
+      type: 'select',
+      options: [
+        { label: 'Feed', value: 'Feed' },
+        { label: 'Medicine', value: 'Medicine' },
+        { label: 'Equipment', value: 'Equipment' },
+        { label: 'Hygiene', value: 'Hygiene' },
+        { label: 'Supplies', value: 'Supplies' },
+      ]
+    },
+    {
+      title: 'Quick Filters',
+      key: 'lowStock',
+      type: 'select',
+      options: [
+        { label: 'Low Stock Only', value: 'true' },
+      ]
+    }
+  ];
 
   const getIcon = (cat: string) => {
     switch (cat.toLowerCase()) {
@@ -111,9 +147,14 @@ export default function Inventory() {
           <Text style={[s.title, { color: colors.text }]}>📦 Inventory</Text>
           <Text style={[s.subtitle, { color: colors.muted }]}>{items.length} items registered</Text>
         </View>
-        <TouchableOpacity style={[s.addBtn, { backgroundColor: colors.green }]} onPress={() => Toast.show({ type: 'info', text1: 'Add Item', text2: 'Inventory addition coming soon!' })}>
-          <MaterialCommunityIcons name="plus" size={24} color="#fff" />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row', gap: 10 }}>
+          <TouchableOpacity style={[s.addBtn, { backgroundColor: colors.surface2, borderWidth: 1, borderColor: colors.border }]} onPress={() => setFilterVisible(true)}>
+            <MaterialCommunityIcons name="filter-variant" size={24} color={Object.keys(filters).length > 0 ? colors.green : colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={[s.addBtn, { backgroundColor: colors.green }]} onPress={() => Toast.show({ type: 'info', text1: 'Add Item', text2: 'Inventory addition coming soon!' })}>
+            <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -133,6 +174,15 @@ export default function Inventory() {
           }
         />
       )}
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        sections={INVENTORY_SECTIONS}
+        filters={filters}
+        onApply={setFilters}
+        onClear={() => setFilters({})}
+      />
     </View>
   );
 }

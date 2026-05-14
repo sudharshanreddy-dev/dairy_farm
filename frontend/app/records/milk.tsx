@@ -6,18 +6,21 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import FilterModal, { FilterSection } from '../../src/components/FilterModal';
 
 export default function MilkProduction() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { fetchRecords(); }, [filters]);
 
   const fetchRecords = async () => {
     try {
-      const resp = await api.get('farm/milk');
+      const resp = await api.get('farm/milk', { params: filters });
       setRecords(resp.data);
     } catch (e) {
       console.error(e);
@@ -25,6 +28,28 @@ export default function MilkProduction() {
       setLoading(false);
     }
   };
+
+  const MILK_SECTIONS: FilterSection[] = [
+    {
+      title: 'Sort By',
+      key: 'sortBy',
+      type: 'select',
+      options: [
+        { label: 'Newest First', value: 'date' },
+        { label: 'Highest Yield', value: 'totalYield' },
+      ]
+    },
+    {
+      title: 'Quality',
+      key: 'quality',
+      type: 'select',
+      options: [
+        { label: 'High', value: 'High' },
+        { label: 'Standard', value: 'Standard' },
+        { label: 'Low', value: 'Low' },
+      ]
+    }
+  ];
 
   const totalToday = records
     .filter(r => r.date?.slice(0, 10) === new Date().toISOString().slice(0, 10))
@@ -73,16 +98,21 @@ export default function MilkProduction() {
 
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/(app)/records')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <View>
           <Text style={[s.title, { color: colors.text }]}>Milk Production</Text>
           <Text style={[s.subtitle, { color: colors.muted }]}>{records.length} records · Today: {totalToday.toFixed(1)} L</Text>
         </View>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-milk' as any)}>
-          <MaterialCommunityIcons name="plus" size={24} color={colors.blue} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity style={s.iconBtn} onPress={() => setFilterVisible(true)}>
+            <MaterialCommunityIcons name="filter-variant" size={24} color={Object.keys(filters).length > 0 ? colors.blue : colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-milk' as any)}>
+            <MaterialCommunityIcons name="plus" size={24} color={colors.blue} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -105,6 +135,15 @@ export default function MilkProduction() {
           }
         />
       )}
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        sections={MILK_SECTIONS}
+        filters={filters}
+        onApply={setFilters}
+        onClear={() => setFilters({})}
+      />
     </View>
   );
 }

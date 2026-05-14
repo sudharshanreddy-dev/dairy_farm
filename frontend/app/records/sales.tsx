@@ -6,18 +6,21 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import FilterModal, { FilterSection } from '../../src/components/FilterModal';
 
 export default function SalesRecords() {
   const router = useRouter();
   const { colors, isDark } = useTheme();
   const [records, setRecords] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
-  useEffect(() => { fetchRecords(); }, []);
+  useEffect(() => { fetchRecords(); }, [filters]);
 
   const fetchRecords = async () => {
     try {
-      const resp = await api.get('farm/sales');
+      const resp = await api.get('farm/sales', { params: filters });
       setRecords(resp.data);
     } catch (e) {
       console.error(e);
@@ -25,6 +28,28 @@ export default function SalesRecords() {
       setLoading(false);
     }
   };
+
+  const SALES_SECTIONS: FilterSection[] = [
+    {
+      title: 'Sort By',
+      key: 'sortBy',
+      type: 'select',
+      options: [
+        { label: 'Date', value: 'date' },
+        { label: 'Total Amount', value: 'totalAmount' },
+      ]
+    },
+    {
+      title: 'Payment Status',
+      key: 'paymentStatus',
+      type: 'select',
+      options: [
+        { label: 'Paid', value: 'Paid' },
+        { label: 'Pending', value: 'Pending' },
+        { label: 'Cancelled', value: 'Cancelled' },
+      ]
+    }
+  ];
 
   const totalRevenue = records.reduce((sum, r) => sum + (r.totalAmount || 0), 0);
 
@@ -73,16 +98,21 @@ export default function SalesRecords() {
 
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.back()}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/(app)/records')}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <View>
           <Text style={[s.title, { color: colors.text }]}>Sales & Revenue</Text>
           <Text style={[s.subtitle, { color: colors.muted }]}>{records.length} sales · ₹{totalRevenue.toLocaleString()} total</Text>
         </View>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-sale' as any)}>
-          <MaterialCommunityIcons name="plus" size={24} color={colors.amber} />
-        </TouchableOpacity>
+        <View style={{ flexDirection: 'row' }}>
+          <TouchableOpacity style={s.iconBtn} onPress={() => setFilterVisible(true)}>
+            <MaterialCommunityIcons name="filter-variant" size={24} color={Object.keys(filters).length > 0 ? colors.amber : colors.text} />
+          </TouchableOpacity>
+          <TouchableOpacity style={s.iconBtn} onPress={() => router.push('/records/add-sale' as any)}>
+            <MaterialCommunityIcons name="plus" size={24} color={colors.amber} />
+          </TouchableOpacity>
+        </View>
       </View>
 
       {loading ? (
@@ -105,6 +135,15 @@ export default function SalesRecords() {
           }
         />
       )}
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        sections={SALES_SECTIONS}
+        filters={filters}
+        onApply={setFilters}
+        onClear={() => setFilters({})}
+      />
     </View>
   );
 }

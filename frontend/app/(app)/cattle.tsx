@@ -9,6 +9,7 @@ import api from '../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { saveAndShareFile } from '../../src/utils/export';
 import Toast from 'react-native-toast-message';
+import FilterModal, { FilterSection } from '../../src/components/FilterModal';
 
 function Badge({ text, type, colors }: any) {
   const bgMap: any = { green: colors.greenDim, amber: colors.amberDim, red: colors.redDim, gray: colors.surface2 };
@@ -25,20 +26,66 @@ export default function CattleList() {
   const router = useRouter();
   const [cattle, setCattle] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [filterVisible, setFilterVisible] = useState(false);
+  const [filters, setFilters] = useState<any>({});
 
   useFocusEffect(
     React.useCallback(() => {
       fetchCattle();
-    }, [])
+    }, [filters])
   );
 
   const fetchCattle = async () => {
     try {
-      const r = await api.get('cattle');
+      const r = await api.get('cattle', { params: filters });
       setCattle(r.data);
     } catch (e) { console.error(e); }
     finally { setLoading(false); }
   };
+
+  const CATTLE_SECTIONS: FilterSection[] = [
+    {
+      title: 'Sort By',
+      key: 'sortBy',
+      type: 'select',
+      options: [
+        { label: 'Recently Added', value: 'createdAt' },
+        { label: 'Name', value: 'name' },
+        { label: 'Tag Number', value: 'tagNumber' },
+        { label: 'Weight', value: 'weight' },
+      ]
+    },
+    {
+      title: 'Status',
+      key: 'status',
+      type: 'select',
+      options: [
+        { label: 'Active', value: 'Active' },
+        { label: 'Sold', value: 'Sold' },
+        { label: 'Dry', value: 'Dry' },
+        { label: 'Sick', value: 'Sick' },
+      ]
+    },
+    {
+      title: 'Gender',
+      key: 'gender',
+      type: 'select',
+      options: [
+        { label: 'Female', value: 'Female' },
+        { label: 'Male', value: 'Male' },
+      ]
+    },
+    {
+      title: 'Quality',
+      key: 'quality',
+      type: 'select',
+      options: [
+        { label: 'Excellent', value: 'Excellent' },
+        { label: 'Good', value: 'Good' },
+        { label: 'Fair', value: 'Fair' },
+      ]
+    }
+  ];
 
   const handleExport = async () => {
     try {
@@ -93,11 +140,14 @@ export default function CattleList() {
            <Text style={[s.title, { color: colors.text }]}>My Herd</Text>
            <Text style={[s.count, { color: colors.muted }]}>{cattle.length} Registered</Text>
          </View>
-         <View style={{ flexDirection: 'row', gap: 12 }}>
+          <View style={{ flexDirection: 'row', gap: 12 }}>
+            <TouchableOpacity style={s.headerIconBtn} onPress={() => setFilterVisible(true)}>
+              <MaterialCommunityIcons name="filter-variant" size={24} color={Object.keys(filters).length > 0 ? colors.green : colors.text} />
+            </TouchableOpacity>
             <TouchableOpacity style={s.headerIconBtn} onPress={handleExport}>
               <MaterialCommunityIcons name="file-download-outline" size={24} color={colors.text} />
             </TouchableOpacity>
-         </View>
+          </View>
       </View>
 
       {loading ? (
@@ -122,6 +172,15 @@ export default function CattleList() {
       <TouchableOpacity style={[s.fab, { backgroundColor: colors.accent }]} onPress={() => router.push('/cattle/add' as any)}>
          <MaterialCommunityIcons name="plus" size={32} color="#fff" />
       </TouchableOpacity>
+
+      <FilterModal
+        visible={filterVisible}
+        onClose={() => setFilterVisible(false)}
+        sections={CATTLE_SECTIONS}
+        filters={filters}
+        onApply={setFilters}
+        onClear={() => setFilters({})}
+      />
 
     </View>
   );

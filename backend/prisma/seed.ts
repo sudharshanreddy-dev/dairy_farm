@@ -147,7 +147,7 @@ async function main() {
           damId: dam.id,
           sireId: sire.id,
           dateOfBirth: new Date(Date.now() - (Math.random() * 5 + 0.2) * 365 * 86400000),
-          purchaseDate: new Date(Date.now() - Math.random() * 2 * 365 * 86400000),
+          purchaseDate: new Date(Date.now() - Math.random() * 5 * 365 * 86400000), // Spread across 5 years
           notes: i % 5 === 0 ? 'High milk lineage' : 'Regular herd'
         }
       });
@@ -384,10 +384,22 @@ async function main() {
   for (let i = 0; i < 300; i++) { // 300 random feeding events
     const user = randomItem(users);
     const userInv = inventoriesByUser.get(user.id) || [];
-    if (!userInv.length) continue;
-    const inventory = randomItem(userInv);
+    const feedInv = userInv.filter(inv => inv.category === 'Feed' || inv.category === 'Supplies');
+    if (!feedInv.length) continue;
+    const inventory = randomItem(feedInv);
     const cattleCount = 5 + Math.floor(Math.random() * 50);
-    const totalQuantity = round((Math.random() * 200 + 20) * cattleCount / 10);
+    
+    // Realistic feeding quantities
+    let dailyPerCow = 15; // default 15kg for roughage/silage
+    if (inventory.itemName.includes('Mineral') || inventory.itemName.includes('Supplement') || inventory.itemName.includes('Urea') || inventory.itemName.includes('Dip')) {
+      dailyPerCow = 0.2; // 200g
+    } else if (inventory.itemName.includes('Pellets') || inventory.itemName.includes('Cake')) {
+      dailyPerCow = 4; // 4kg
+    } else if (inventory.category === 'Supplies') {
+      dailyPerCow = 0.5;
+    }
+    const totalQuantity = round((dailyPerCow * cattleCount) * (0.8 + Math.random() * 0.4));
+
     feedingLogs.push({
       userId: user.id,
       inventoryId: inventory.id,

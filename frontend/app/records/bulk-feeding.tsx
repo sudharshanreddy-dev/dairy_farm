@@ -58,7 +58,7 @@ export default function BulkFeeding() {
         cattleCount: parseInt(form.cattleCount)
       });
       Toast.show({ type: 'success', text1: 'Success', text2: 'Feeding log saved successfully' });
-      router.back();
+      router.push('/(app)/records');
     } catch (e) {
       Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save feeding log' });
     } finally {
@@ -72,7 +72,7 @@ export default function BulkFeeding() {
     <View style={[s.flex, { backgroundColor: colors.bg }]}>
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity onPress={() => router.back()} style={s.backBtn}>
+        <TouchableOpacity onPress={() => router.push('/(app)/records')} style={s.backBtn}>
           <MaterialCommunityIcons name="chevron-left" size={32} color={colors.text} />
         </TouchableOpacity>
         <Text style={[s.title, { color: colors.text }]}>Log Bulk Feeding</Text>

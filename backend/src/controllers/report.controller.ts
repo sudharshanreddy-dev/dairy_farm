@@ -63,11 +63,12 @@ export const exportFinancials = async (req: Request, res: Response) => {
     const userId = req.user!.userId;
 
     // Aggregate from multiple sources
-    const [sales, health, vax, cattle] = await Promise.all([
+    const [sales, health, vax, cattle, feeding] = await Promise.all([
       prisma.sale.findMany({ where: { userId } }),
       prisma.healthRecord.findMany({ where: { userId }, include: { cattle: true } }),
       prisma.vaccination.findMany({ where: { userId }, include: { cattle: true } }),
-      prisma.cattle.findMany({ where: { userId } })
+      prisma.cattle.findMany({ where: { userId } }),
+      prisma.feedingLog.findMany({ where: { userId }, include: { inventory: { select: { itemName: true, costPerUnit: true } } } })
     ]);
 
     const headers = ['Date', 'Category', 'Type', 'Amount', 'Description', 'Related Entity'];
@@ -86,9 +87,15 @@ export const exportFinancials = async (req: Request, res: Response) => {
       if (v.cost > 0) ledger.push([v.dateGiven.toLocaleDateString(), 'Vaccination', 'Expense', v.cost, v.vaccineName, v.cattle.name || v.cattle.tagNumber]);
     });
 
-    // Cattle -> Purchase Expense
+    // Cattle -> Capital Investment
     cattle.forEach(c => {
-      if (c.purchasePrice > 0) ledger.push([c.purchaseDate?.toLocaleDateString() || c.createdAt.toLocaleDateString(), 'Purchase', 'Expense', c.purchasePrice, `Purchased ${c.breed} cattle`, c.name || c.tagNumber]);
+      if (c.purchasePrice > 0) ledger.push([c.purchaseDate?.toLocaleDateString() || c.createdAt.toLocaleDateString(), 'Capital Investment', 'Asset', c.purchasePrice, `Purchased ${c.breed} cattle`, c.name || c.tagNumber]);
+    });
+
+    // Feeding -> Operating Expense
+    feeding.forEach(f => {
+      const cost = f.totalQuantity * f.inventory.costPerUnit;
+      if (cost > 0) ledger.push([f.date.toLocaleDateString(), 'Feed', 'Expense', cost, `Fed ${f.totalQuantity} units of ${f.inventory.itemName}`, 'Herd']);
     });
 
     // Sort by date desc
