@@ -7,6 +7,7 @@ import { LineChart, BarChart, PieChart } from 'react-native-chart-kit';
 import api from '../../src/api/axios';
 import { FontAwesome5, MaterialCommunityIcons } from '@expo/vector-icons';
 import { saveAndShareFile } from '../../src/utils/export';
+import Toast from 'react-native-toast-message';
 import { Alert, TextInput, Modal } from 'react-native';
 
 const W = Dimensions.get('window').width;
@@ -60,9 +61,9 @@ export default function Analytics() {
   const handleExport = async () => {
     try {
       const res = await api.get('reports/financials');
-      await saveAndShareFile(res.data, 'financial_ledger.csv');
+      await saveAndShareFile(res.data, 'financial_report.csv');
     } catch (e) {
-      Alert.alert('Export Failed', 'Unable to generate financial report.');
+      Toast.show({ type: 'error', text1: 'Export Failed', text2: 'Unable to generate financial report.' });
     }
   };
 

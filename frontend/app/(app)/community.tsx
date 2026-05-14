@@ -6,6 +6,22 @@ import {
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/api/axios';
+import Toast from 'react-native-toast-message';
+
+export const getRelativeTime = (dateString: string) => {
+  const d = new Date(dateString);
+  const now = new Date();
+  const diffInSeconds = Math.floor((now.getTime() - d.getTime()) / 1000);
+  if (diffInSeconds < 60) return 'just now';
+  const diffInMinutes = Math.floor(diffInSeconds / 60);
+  if (diffInMinutes < 60) return `${diffInMinutes} mins ago`;
+  const diffInHours = Math.floor(diffInMinutes / 60);
+  if (diffInHours < 24) return `${diffInHours} hours ago`;
+  const diffInDays = Math.floor(diffInHours / 24);
+  if (diffInDays === 1) return `1 day ago`;
+  if (diffInDays < 30) return `${diffInDays} days ago`;
+  return d.toLocaleDateString('en-IN');
+};
 
 export default function Community() {
   const router = useRouter();
@@ -28,14 +44,15 @@ export default function Community() {
   };
 
   const handleCreate = async () => {
-    if (!newPost.title || !newPost.content) { Alert.alert('Error', 'Please fill all fields'); return; }
+    if (!newPost.title || !newPost.content) { Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill all fields' }); return; }
     setSaving(true);
     try {
       await api.post('farm/community', newPost);
       setNewPost({ title: '', content: '' });
       setShowForm(false);
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Post created!' });
       fetchPosts();
-    } catch (e) { Alert.alert('Error', 'Failed to create post'); }
+    } catch (e) { Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to create post' }); }
     finally { setSaving(false); }
   };
 
@@ -45,7 +62,7 @@ export default function Community() {
         <View style={s.authorDot}><Text style={{ fontSize: 14 }}>👤</Text></View>
         <View style={{ flex: 1 }}>
           <Text style={s.author}>{item.author}</Text>
-          <Text style={s.date}>{new Date(item.createdAt).toLocaleDateString('en-IN')}</Text>
+          <Text style={s.date}>{getRelativeTime(item.createdAt)}</Text>
         </View>
       </View>
       <Text style={s.postTitle}>{item.title}</Text>

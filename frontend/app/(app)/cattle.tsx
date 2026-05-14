@@ -1,13 +1,14 @@
 import React, { useEffect, useState } from 'react';
 import {
   View, Text, FlatList, StyleSheet, ActivityIndicator,
-  TouchableOpacity, StatusBar, Alert,
+  TouchableOpacity, StatusBar,
 } from 'react-native';
 import { useRouter, useFocusEffect } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { saveAndShareFile } from '../../src/utils/export';
+import Toast from 'react-native-toast-message';
 
 function Badge({ text, type, colors }: any) {
   const bgMap: any = { green: colors.greenDim, amber: colors.amberDim, red: colors.redDim, gray: colors.surface2 };
@@ -42,9 +43,9 @@ export default function CattleList() {
   const handleExport = async () => {
     try {
       const res = await api.get('reports/herd');
-      await saveAndShareFile(res.data, 'herd_roster.csv');
+      await saveAndShareFile(res.data, 'herd_report.csv');
     } catch (e) {
-      Alert.alert('Export Failed', 'Unable to generate herd report.');
+      Toast.show({ type: 'error', text1: 'Export Failed', text2: 'Unable to generate herd report.' });
     }
   };
 

@@ -5,6 +5,7 @@ import {
 import { Camera, CameraView } from 'expo-camera';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
+import Toast from 'react-native-toast-message';
 
 export default function QRScanner() {
   const [hasPermission, setHasPermission] = useState<boolean | null>(null);
@@ -28,7 +29,7 @@ export default function QRScanner() {
         throw new Error('Invalid QR');
       }
     } catch {
-      Alert.alert('Scan Error', 'Invalid Cattle QR Code');
+      Toast.show({ type: 'error', text1: 'Scan Error', text2: 'Invalid Cattle QR Code' });
     }
   };
 

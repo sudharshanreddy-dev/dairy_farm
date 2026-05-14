@@ -8,6 +8,7 @@ import { useRouter, useLocalSearchParams } from 'expo-router';
 import { useTheme } from '../../../src/context/ThemeContext';
 import api from '../../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 const PREFILLED_BREEDS = [
   'Holstein Friesian',
@@ -75,7 +76,7 @@ export default function AddCattle() {
         if (d.breed && !PREFILLED_BREEDS.includes(d.breed)) setShowOtherInput(true);
         setLoading(false);
       }).catch(() => {
-        Alert.alert('Error', 'Failed to load cattle data');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load cattle data' });
         setLoading(false);
       });
     }
@@ -83,7 +84,7 @@ export default function AddCattle() {
 
   const handleSave = async () => {
     if (!form.name || !form.breed || !form.weight || !form.purchasePrice) {
-      Alert.alert('Required Fields', 'Please fill in Name, Breed, Weight, and Purchase Price.');
+      Toast.show({ type: 'error', text1: 'Required Fields', text2: 'Please fill in Name, Breed, Weight, and Purchase Price.' });
       return;
     }
 
@@ -105,11 +106,18 @@ export default function AddCattle() {
         await api.post('cattle', payload);
       }
       
-      Alert.alert('Success', id ? 'Cattle updated successfully' : 'Cattle registered successfully', [
-        { text: 'OK', onPress: () => router.replace('/cattle' as any) }
-      ]);
+      Toast.show({
+        type: 'success',
+        text1: 'Success ✓',
+        text2: id ? 'Cattle updated successfully' : 'Cattle registered successfully'
+      });
+      router.replace('/cattle' as any);
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.error || (id ? 'Update failed' : 'Registration failed'));
+      Toast.show({
+        type: 'error',
+        text1: 'Error',
+        text2: e.response?.data?.error || (id ? 'Update failed' : 'Registration failed')
+      });
     } finally {
       setSaving(false);
     }

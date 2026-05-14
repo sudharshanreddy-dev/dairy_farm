@@ -7,6 +7,7 @@ import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/api/axios';
 import { MaterialCommunityIcons, FontAwesome5 } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function BulkFeeding() {
   const { colors, isDark } = useTheme();
@@ -45,7 +46,7 @@ export default function BulkFeeding() {
 
   const handleSave = async () => {
     if (!form.inventoryId || !form.totalQuantity || !form.cattleCount) {
-      Alert.alert('Error', 'Please fill all required fields');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Please fill all required fields' });
       return;
     }
 
@@ -56,10 +57,10 @@ export default function BulkFeeding() {
         totalQuantity: parseFloat(form.totalQuantity),
         cattleCount: parseInt(form.cattleCount)
       });
-      Alert.alert('Success', 'Feeding log saved successfully');
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Feeding log saved successfully' });
       router.back();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save feeding log');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save feeding log' });
     } finally {
       setSaving(false);
     }

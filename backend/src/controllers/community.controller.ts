@@ -49,11 +49,12 @@ export const createPost = async (req: Request, res: Response): Promise<void> => 
 export const createComment = async (req: Request, res: Response): Promise<void> => {
   try {
     const { postId } = req.params;
-    const { content } = req.body;
+    const { content, parentId } = req.body;
     const comment = await prisma.communityComment.create({
       data: {
         postId: Number(postId),
         content,
+        parentId: parentId ? Number(parentId) : null,
         author: req.user!.fullName || req.user!.username || 'Anonymous'
       }
     });

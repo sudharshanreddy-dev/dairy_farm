@@ -7,6 +7,7 @@ import { AuthContext } from '../../src/context/AuthContext';
 import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function Profile() {
   const { user, updateUserData } = useContext(AuthContext);
@@ -48,7 +49,7 @@ export default function Profile() {
 
   const handleSave = async () => {
     if (!form.full_name || !form.farm_name) {
-      Alert.alert('Error', 'Full Name and Farm Name are required.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Full Name and Farm Name are required.' });
       return;
     }
 
@@ -56,9 +57,9 @@ export default function Profile() {
     try {
       const res = await api.put('auth/profile', form);
       await updateUserData(res.data.user);
-      Alert.alert('Success', 'Profile updated successfully');
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Profile updated successfully' });
     } catch (e: any) {
-      Alert.alert('Error', e.response?.data?.error || 'Failed to update profile');
+      Toast.show({ type: 'error', text1: 'Error', text2: e.response?.data?.error || 'Failed to update profile' });
     } finally {
       setSaving(false);
     }

@@ -56,6 +56,9 @@ model CommunityComment {
   author    String
   createdAt DateTime      @default(now())
   post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  parentId  Int?
+  parent    CommunityComment?  @relation("CommentReplies", fields: [parentId], references: [id])
+  replies   CommunityComment[] @relation("CommentReplies")
 }
 
 model CommunityPost {

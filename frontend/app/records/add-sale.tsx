@@ -7,6 +7,7 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function AddSale() {
   const router = useRouter();
@@ -25,7 +26,8 @@ export default function AddSale() {
 
   const handleSave = async () => {
     if (!form.quantityLiters || !form.pricePerLiter) {
-      return Alert.alert('Error', 'Quantity and Price per liter are required.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Quantity and Price per liter are required.' });
+      return;
     }
     setSaving(true);
     try {
@@ -35,9 +37,10 @@ export default function AddSale() {
         pricePerLiter: parseFloat(form.pricePerLiter),
         totalAmount: total,
       });
-      Alert.alert('Success ✓', 'Sale recorded!', [{ text: 'OK', onPress: () => router.back() }]);
+      Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Sale recorded!' });
+      router.back();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save sale record.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save sale record.' });
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,7 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function AddMilk() {
   const router = useRouter();
@@ -29,8 +30,8 @@ export default function AddMilk() {
   const selectedCattle = cattle.find(c => c.id.toString() === form.cattleId);
 
   const handleSave = async () => {
-    if (!form.cattleId) return Alert.alert('Error', 'Please select a cattle.');
-    if (!form.morningYield && !form.eveningYield) return Alert.alert('Error', 'Enter at least one yield value.');
+    if (!form.cattleId) { Toast.show({ type: 'error', text1: 'Error', text2: 'Please select a cattle.' }); return; }
+    if (!form.morningYield && !form.eveningYield) { Toast.show({ type: 'error', text1: 'Error', text2: 'Enter at least one yield value.' }); return; }
     setSaving(true);
     try {
       await api.post('farm/milk', {
@@ -38,9 +39,10 @@ export default function AddMilk() {
         morningYield: parseFloat(form.morningYield) || 0,
         eveningYield: parseFloat(form.eveningYield) || 0,
       });
-      Alert.alert('Success ✓', 'Milk record saved!', [{ text: 'OK', onPress: () => router.back() }]);
+      Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Milk record saved!' });
+      router.back();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save record. Check the details and try again.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save record. Check the details and try again.' });
     } finally {
       setSaving(false);
     }

@@ -7,6 +7,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useTheme } from '../../../src/context/ThemeContext';
 import api from '../../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
+import { getRelativeTime } from '../community';
 
 export default function CommunityDetail() {
   const { id } = useLocalSearchParams();
@@ -16,6 +18,7 @@ export default function CommunityDetail() {
   const [loading, setLoading] = useState(true);
   const [comment, setComment] = useState('');
   const [saving, setSaving] = useState(false);
+  const [replyingTo, setReplyingTo] = useState<any>(null);
 
   useEffect(() => { fetchPost(); }, [id]);
 
@@ -25,7 +28,7 @@ export default function CommunityDetail() {
       setPost(r.data);
     } catch (e) {
       console.error(e);
-      Alert.alert('Error', 'Failed to load discussion');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load discussion' });
     } finally {
       setLoading(false);
     }
@@ -35,15 +38,36 @@ export default function CommunityDetail() {
     if (!comment.trim()) return;
     setSaving(true);
     try {
-      await api.post(`farm/community/${id}/comments`, { content: comment });
+      await api.post(`farm/community/${id}/comments`, { 
+        content: comment,
+        parentId: replyingTo?.id || null 
+      });
       setComment('');
+      setReplyingTo(null);
+      Toast.show({ type: 'success', text1: 'Success', text2: 'Comment added' });
       fetchPost();
     } catch (e) {
-      Alert.alert('Error', 'Failed to add comment');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to add comment' });
     } finally {
       setSaving(false);
     }
   };
+
+  const buildCommentTree = (comments: any[]) => {
+    const map: any = {};
+    const roots: any[] = [];
+    comments.forEach(c => map[c.id] = { ...c, replies: [] });
+    comments.forEach(c => {
+      if (c.parentId && map[c.parentId]) {
+        map[c.parentId].replies.push(map[c.id]);
+      } else {
+        roots.push(map[c.id]);
+      }
+    });
+    return roots;
+  };
+
+  const commentTree = post?.comments ? buildCommentTree(post.comments) : [];
 
   if (loading) {
     return (
@@ -79,7 +103,7 @@ export default function CommunityDetail() {
             </View>
             <View>
               <Text style={[s.authorName, { color: colors.text }]}>{post.author}</Text>
-              <Text style={[s.postDate, { color: colors.muted }]}>{new Date(post.createdAt).toLocaleDateString()}</Text>
+              <Text style={[s.postDate, { color: colors.muted }]}>{getRelativeTime(post.createdAt)}</Text>
             </View>
           </View>
           <Text style={[s.postTitle, { color: colors.text }]}>{post.title}</Text>
@@ -92,14 +116,16 @@ export default function CommunityDetail() {
         {/* Comments Section */}
         <Text style={[s.secHeader, { color: colors.text }]}>Comments ({post.comments?.length || 0})</Text>
         
-        {post.comments?.map((c: any) => (
-          <View key={c.id} style={[s.commentCard, { borderBottomColor: colors.border }]}>
-             <View style={s.commentHead}>
-                <Text style={[s.commentAuthor, { color: colors.text }]}>{c.author}</Text>
-                <Text style={[s.commentDate, { color: colors.muted }]}>{new Date(c.createdAt).toLocaleDateString()}</Text>
-             </View>
-             <Text style={[s.commentText, { color: colors.text }]}>{c.content}</Text>
-          </View>
+        {commentTree.map((c: any) => (
+          <CommentItem 
+             key={c.id} 
+             comment={c} 
+             depth={0} 
+             onReply={setReplyingTo} 
+             postAuthor={post.author} 
+             colors={colors} 
+             isDark={isDark} 
+          />
         ))}
 
         {(!post.comments || post.comments.length === 0) && (
@@ -111,14 +137,24 @@ export default function CommunityDetail() {
 
       {/* Reply Bar */}
       <View style={[s.replyBar, { backgroundColor: colors.surface, borderTopColor: colors.border }]}>
-         <TextInput 
-           style={[s.replyInput, { backgroundColor: colors.surface2, color: colors.text, borderColor: colors.border }]}
-           placeholder="Add a comment..."
+         <View style={{ flex: 1 }}>
+           {replyingTo && (
+             <View style={s.replyingToHeader}>
+               <Text style={[s.replyingToText, { color: colors.muted }]}>Replying to {replyingTo.author}</Text>
+               <TouchableOpacity onPress={() => setReplyingTo(null)}>
+                 <MaterialCommunityIcons name="close" size={16} color={colors.muted} />
+               </TouchableOpacity>
+             </View>
+           )}
+           <TextInput 
+             style={[s.replyInput, { backgroundColor: colors.surface2, color: colors.text, borderColor: colors.border }, replyingTo && { borderTopLeftRadius: 0, borderTopRightRadius: 0, borderTopWidth: 0 }]}
+             placeholder="Add a comment..."
            placeholderTextColor={colors.muted}
            value={comment}
            onChangeText={setComment}
            multiline
          />
+         </View>
          <TouchableOpacity 
            style={[s.sendBtn, { backgroundColor: comment.trim() ? colors.accent : colors.surface2 }]} 
            onPress={handleComment}
@@ -130,6 +166,30 @@ export default function CommunityDetail() {
     </KeyboardAvoidingView>
   );
 }
+
+const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }: any) => {
+  const isAuthor = comment.author === postAuthor;
+  return (
+    <View style={[{ paddingLeft: depth > 0 ? 16 : 0 }, depth > 0 && { borderLeftWidth: 1, borderLeftColor: colors.border, marginLeft: 8 }]}>
+      <View style={[s.commentCard, depth > 0 && { borderBottomWidth: 0, paddingVertical: 12 }]}>
+         <View style={s.commentHead}>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
+              <Text style={[s.commentAuthor, { color: isAuthor ? colors.accent : colors.text }]}>{comment.author}</Text>
+              {isAuthor && <View style={[s.authorBadge, { backgroundColor: colors.accent }]}><Text style={s.authorBadgeText}>Author</Text></View>}
+            </View>
+            <Text style={[s.commentDate, { color: colors.muted }]}>{getRelativeTime(comment.createdAt)}</Text>
+         </View>
+         <Text style={[s.commentText, { color: colors.text }]}>{comment.content}</Text>
+         <TouchableOpacity onPress={() => onReply(comment)} style={{ marginTop: 8 }}>
+            <Text style={{ color: colors.muted, fontSize: 12, fontWeight: '700' }}>Reply</Text>
+         </TouchableOpacity>
+      </View>
+      {comment.replies && comment.replies.map((reply: any) => (
+        <CommentItem key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} postAuthor={postAuthor} colors={colors} isDark={isDark} />
+      ))}
+    </View>
+  );
+};
 
 const s = StyleSheet.create({
   flex: { flex: 1 },
@@ -154,10 +214,14 @@ const s = StyleSheet.create({
   commentCard: { paddingVertical: 16, borderBottomWidth: 1 },
   commentHead: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 6 },
   commentAuthor: { fontSize: 14, fontWeight: '700' },
+  authorBadge: { paddingHorizontal: 6, paddingVertical: 2, borderRadius: 4 },
+  authorBadgeText: { color: '#fff', fontSize: 9, fontWeight: '800', textTransform: 'uppercase' },
   commentDate: { fontSize: 11 },
   commentText: { fontSize: 14, lineHeight: 20 },
   empty: { padding: 40, alignItems: 'center' },
   replyBar: { flexDirection: 'row', padding: 12, paddingBottom: Platform.OS === 'ios' ? 24 : 12, borderTopWidth: 1, alignItems: 'flex-end', gap: 8 },
-  replyInput: { flex: 1, borderRadius: 20, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 100 },
+  replyInput: { borderRadius: 20, borderWidth: 1, paddingHorizontal: 16, paddingVertical: 10, fontSize: 14, maxHeight: 100 },
+  replyingToHeader: { flexDirection: 'row', justifyContent: 'space-between', backgroundColor: 'rgba(139,148,158,0.1)', paddingHorizontal: 16, paddingVertical: 8, borderTopLeftRadius: 20, borderTopRightRadius: 20, borderWidth: 1, borderBottomWidth: 0, borderColor: 'rgba(139,148,158,0.2)' },
+  replyingToText: { fontSize: 12, fontWeight: '600' },
   sendBtn: { width: 44, height: 44, borderRadius: 22, alignItems: 'center', justifyContent: 'center' },
 });

@@ -9,6 +9,7 @@ import { useTheme } from '../../../src/context/ThemeContext';
 import api from '../../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
 import { Image } from 'expo-image';
+import Toast from 'react-native-toast-message';
 import { saveAndShareFile } from '../../../src/utils/export';
 
 const W = Dimensions.get('window').width;
@@ -113,9 +114,9 @@ export default function CattleDetail() {
     } catch (e: any) {
       console.error(e);
       if (e.response?.status === 401) {
-        Alert.alert('Session Expired', 'Please log in again.');
+        Toast.show({ type: 'error', text1: 'Session Expired', text2: 'Please log in again.' });
       } else {
-        Alert.alert('Error', 'Failed to load cattle details.');
+        Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to load cattle details.' });
       }
     } finally {
       setLoading(false);
@@ -128,7 +129,7 @@ export default function CattleDetail() {
       setQrData(resp.data);
       setQrModal(true);
     } catch (e) {
-      Alert.alert('Error', 'Failed to generate QR code');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to generate QR code' });
     }
   };
 
@@ -146,7 +147,7 @@ export default function CattleDetail() {
       const res = await api.get(`reports/cattle/${id}`);
       await saveAndShareFile(res.data, `cattle_${data.tagNumber}_history.csv`);
     } catch (e) {
-      Alert.alert('Export Failed', 'Unable to generate cattle history report.');
+      Toast.show({ type: 'error', text1: 'Export Failed', text2: 'Unable to generate cattle history report.' });
     }
   };
 
@@ -157,6 +158,7 @@ export default function CattleDetail() {
         console.log('Performing delete for cattle:', id);
         const res = await api.delete(`cattle/${id}`);
         console.log('Delete response:', res.data);
+        Toast.show({ type: 'success', text1: 'Success', text2: 'Cattle record deleted.' });
         router.replace('/(app)/cattle' as any);
       } catch (e: any) {
         console.error('Delete error details:', e);
@@ -164,7 +166,7 @@ export default function CattleDetail() {
         if (Platform.OS === 'web') {
           window.alert('Error: ' + msg);
         } else {
-          Alert.alert('Error', msg);
+          Toast.show({ type: 'error', text1: 'Error', text2: msg });
         }
       }
     };

@@ -6,6 +6,7 @@ import {
 import { useTheme } from '../../src/context/ThemeContext';
 import api from '../../src/api/axios';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 import { useRouter } from 'expo-router';
 
 const W = Dimensions.get('window').width;
@@ -110,8 +111,8 @@ export default function Inventory() {
           <Text style={[s.title, { color: colors.text }]}>📦 Inventory</Text>
           <Text style={[s.subtitle, { color: colors.muted }]}>{items.length} items registered</Text>
         </View>
-        <TouchableOpacity style={[s.addBtn, { backgroundColor: colors.green }]} onPress={() => Alert.alert('Add Item', 'Inventory addition coming soon!')}>
-           <MaterialCommunityIcons name="plus" size={24} color="#fff" />
+        <TouchableOpacity style={[s.addBtn, { backgroundColor: colors.green }]} onPress={() => Toast.show({ type: 'info', text1: 'Add Item', text2: 'Inventory addition coming soon!' })}>
+          <MaterialCommunityIcons name="plus" size={24} color="#fff" />
         </TouchableOpacity>
       </View>
 

@@ -7,6 +7,7 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function AddVaccination() {
   const router = useRouter();
@@ -30,17 +31,18 @@ export default function AddVaccination() {
   const selectedCattle = cattle.find(c => c.id.toString() === form.cattleId);
 
   const handleSave = async () => {
-    if (!form.cattleId) return Alert.alert('Error', 'Please select a cattle.');
-    if (!form.vaccineName) return Alert.alert('Error', 'Vaccine name is required.');
+    if (!form.cattleId) { Toast.show({ type: 'error', text1: 'Error', text2: 'Please select a cattle.' }); return; }
+    if (!form.vaccineName) { Toast.show({ type: 'error', text1: 'Error', text2: 'Vaccine name is required.' }); return; }
     setSaving(true);
     try {
       await api.post('farm/vaccinations', {
         ...form,
         cost: parseFloat(form.cost) || 0,
       });
-      Alert.alert('Success ✓', 'Vaccination logged!', [{ text: 'OK', onPress: () => router.back() }]);
+      Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Vaccination logged!' });
+      router.back();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save vaccination record.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save vaccination record.' });
     } finally {
       setSaving(false);
     }

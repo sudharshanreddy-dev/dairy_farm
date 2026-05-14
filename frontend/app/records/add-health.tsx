@@ -7,6 +7,7 @@ import api from '../../src/api/axios';
 import { useRouter } from 'expo-router';
 import { useTheme } from '../../src/context/ThemeContext';
 import { MaterialCommunityIcons } from '@expo/vector-icons';
+import Toast from 'react-native-toast-message';
 
 export default function AddHealth() {
   const router = useRouter();
@@ -31,17 +32,18 @@ export default function AddHealth() {
   const selectedCattle = cattle.find(c => c.id.toString() === form.cattleId);
 
   const handleSave = async () => {
-    if (!form.cattleId) return Alert.alert('Error', 'Please select a cattle.');
-    if (!form.condition) return Alert.alert('Error', 'Condition is required.');
+    if (!form.cattleId) { Toast.show({ type: 'error', text1: 'Error', text2: 'Please select a cattle.' }); return; }
+    if (!form.condition) { Toast.show({ type: 'error', text1: 'Error', text2: 'Condition is required.' }); return; }
     setSaving(true);
     try {
       await api.post('farm/health', {
         ...form,
         cost: form.cost ? parseFloat(form.cost) : 0,
       });
-      Alert.alert('Success ✓', 'Health record saved!', [{ text: 'OK', onPress: () => router.back() }]);
+      Toast.show({ type: 'success', text1: 'Success ✓', text2: 'Health record saved!' });
+      router.back();
     } catch (e) {
-      Alert.alert('Error', 'Failed to save health record.');
+      Toast.show({ type: 'error', text1: 'Error', text2: 'Failed to save health record.' });
     } finally {
       setSaving(false);
     }
