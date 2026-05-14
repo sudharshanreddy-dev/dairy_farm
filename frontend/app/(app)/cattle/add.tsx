@@ -91,12 +91,12 @@ export default function AddCattle() {
     try {
       const payload = {
         ...form,
-        weight: parseFloat(form.weight),
-        purchasePrice: parseFloat(form.purchasePrice),
+        weight: parseFloat(form.weight) || 0,
+        purchasePrice: parseFloat(form.purchasePrice) || 0,
         damId: form.damId ? parseInt(form.damId) : null,
         sireId: form.sireId ? parseInt(form.sireId) : null,
-        dateOfBirth: form.dateOfBirth ? new Date(form.dateOfBirth).toISOString() : null,
-        purchaseDate: form.purchaseDate ? new Date(form.purchaseDate).toISOString() : null,
+        dateOfBirth: (form.dateOfBirth && !isNaN(Date.parse(form.dateOfBirth))) ? new Date(form.dateOfBirth).toISOString() : null,
+        purchaseDate: (form.purchaseDate && !isNaN(Date.parse(form.purchaseDate))) ? new Date(form.purchaseDate).toISOString() : null,
       };
 
       if (id) {
@@ -106,7 +106,7 @@ export default function AddCattle() {
       }
       
       Alert.alert('Success', id ? 'Cattle updated successfully' : 'Cattle registered successfully', [
-        { text: 'OK', onPress: () => router.navigate('/(app)/cattle' as any) }
+        { text: 'OK', onPress: () => router.replace('/cattle' as any) }
       ]);
     } catch (e: any) {
       Alert.alert('Error', e.response?.data?.error || (id ? 'Update failed' : 'Registration failed'));
@@ -130,7 +130,7 @@ export default function AddCattle() {
       
       {/* Header */}
       <View style={[s.header, { backgroundColor: colors.surface, borderBottomColor: colors.border }]}>
-        <TouchableOpacity style={s.iconBtn} onPress={() => router.navigate('/(app)/cattle' as any)}>
+        <TouchableOpacity style={s.iconBtn} onPress={() => router.replace('/cattle' as any)}>
           <MaterialCommunityIcons name="chevron-left" size={28} color={colors.text} />
         </TouchableOpacity>
         <Text style={[s.title, { color: colors.text }]}>{id ? 'Edit Cattle' : 'Register Cattle'}</Text>

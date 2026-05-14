@@ -20,52 +20,52 @@ model Alert {
 }
 
 model Cattle {
-  id                                 Int              @id @default(autoincrement())
-  userId                             Int
-  tagNumber                          String
-  name                               String?
-  breed                              String?
-  dateOfBirth                        DateTime?
-  gender                             String           @default("Female")
-  weight                             Float?
-  quality                            String           @default("Good")
-  purchasePrice                      Float            @default(0)
-  salePrice                          Float            @default(0)
-  purchaseDate                       DateTime?
-  damId                              Int?
-  sireId                             Int?
-  status                             String           @default("Active")
-  notes                              String?
-  createdAt                          DateTime         @default(now())
-  dam                                Cattle?          @relation("Cattle_damIdToCattle", fields: [damId], references: [id])
-  damOffspring                       Cattle[]         @relation("Cattle_damIdToCattle")
-  sire                               Cattle?          @relation("Cattle_sireIdToCattle", fields: [sireId], references: [id])
-  sireOffspring                      Cattle[]         @relation("Cattle_sireIdToCattle")
-  user                               User             @relation(fields: [userId], references: [id], onDelete: Cascade)
-  healthRecords                      HealthRecord[]
-  milkRecords                        MilkProduction[]
-  vaccinations                       Vaccination[]
+  id            Int              @id @default(autoincrement())
+  userId        Int
+  tagNumber     String
+  name          String?
+  breed         String?
+  dateOfBirth   DateTime?
+  gender        String           @default("Female")
+  weight        Float?
+  quality       String           @default("Good")
+  purchasePrice Float            @default(0)
+  salePrice     Float            @default(0)
+  purchaseDate  DateTime?
+  damId         Int?
+  sireId        Int?
+  status        String           @default("Active")
+  notes         String?
+  createdAt     DateTime         @default(now())
+  dam           Cattle?          @relation("Cattle_damIdToCattle", fields: [damId], references: [id])
+  damOffspring  Cattle[]         @relation("Cattle_damIdToCattle")
+  sire          Cattle?          @relation("Cattle_sireIdToCattle", fields: [sireId], references: [id])
+  sireOffspring Cattle[]         @relation("Cattle_sireIdToCattle")
+  user          User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  healthRecords HealthRecord[]
+  milkRecords   MilkProduction[]
+  vaccinations  Vaccination[]
 
   @@unique([userId, tagNumber])
 }
 
 model CommunityComment {
-  id            Int           @id @default(autoincrement())
-  postId        Int
-  content       String
-  author        String
-  createdAt     DateTime      @default(now())
-  post          CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
+  id        Int           @id @default(autoincrement())
+  postId    Int
+  content   String
+  author    String
+  createdAt DateTime      @default(now())
+  post      CommunityPost @relation(fields: [postId], references: [id], onDelete: Cascade)
 }
 
 model CommunityPost {
-  id               Int                @id @default(autoincrement())
-  title            String
-  content          String
-  author           String
-  category         String             @default("General")
-  createdAt        DateTime           @default(now())
-  comments         CommunityComment[]
+  id        Int                @id @default(autoincrement())
+  title     String
+  content   String
+  author    String
+  category  String             @default("General")
+  createdAt DateTime           @default(now())
+  comments  CommunityComment[]
 }
 
 model FeedingLog {

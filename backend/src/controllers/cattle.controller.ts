@@ -168,19 +168,58 @@ export const createCattle = async (req: Request, res: Response): Promise<void> =
   try {
     const userId = req.user!.userId;
     const username = req.user!.username;
-    let { tagNumber, breed } = req.body;
-
-    if (!tagNumber) {
-      const count = await prisma.cattle.count({
-        where: { userId, breed }
-      });
-      tagNumber = `${username}-${breed || 'Unknown'}-${(count + 1).toString().padStart(3, '0')}`;
-    }
+    let { tagNumber, breed, damId, sireId } = req.body;
 
     const parseNum = (v: any, def: any = undefined) => {
       const p = parseFloat(v);
       return isNaN(p) ? def : p;
     };
+
+    // Auto-generate tagNumber if not provided
+    if (!tagNumber || tagNumber.trim() === '') {
+      let suffix = 1;
+      let generatedTag = '';
+      let isUnique = false;
+
+      // Ensure we generate a truly unique tag number for this user
+      while (!isUnique) {
+        generatedTag = `${username.slice(0, 3).toUpperCase()}-${(breed || 'UNK').slice(0, 3).toUpperCase()}-${suffix.toString().padStart(3, '0')}`;
+        const existing = await prisma.cattle.findFirst({ where: { userId, tagNumber: generatedTag } });
+        if (!existing) {
+          isUnique = true;
+        } else {
+          suffix++;
+        }
+      }
+      tagNumber = generatedTag;
+    } else {
+      // If provided, check if it's already taken by this user
+      const existing = await prisma.cattle.findFirst({ where: { userId, tagNumber } });
+      if (existing) {
+        res.status(400).json({ error: `Tag number ${tagNumber} is already registered to your farm.` });
+        return;
+      }
+    }
+
+    // Validate parent IDs if provided
+    const parsedDamId = parseNum(damId);
+    const parsedSireId = parseNum(sireId);
+
+    if (parsedDamId) {
+      const dam = await prisma.cattle.findFirst({ where: { id: parsedDamId, userId } });
+      if (!dam) {
+        res.status(400).json({ error: `Dam ID ${parsedDamId} not found in your records.` });
+        return;
+      }
+    }
+
+    if (parsedSireId) {
+      const sire = await prisma.cattle.findFirst({ where: { id: parsedSireId, userId } });
+      if (!sire) {
+        res.status(400).json({ error: `Sire ID ${parsedSireId} not found in your records.` });
+        return;
+      }
+    }
 
     const data = {
       ...req.body,
@@ -189,17 +228,17 @@ export const createCattle = async (req: Request, res: Response): Promise<void> =
       weight: parseNum(req.body.weight),
       purchasePrice: parseNum(req.body.purchasePrice, 0),
       salePrice: parseNum(req.body.salePrice, 0),
-      damId: parseNum(req.body.damId),
-      sireId: parseNum(req.body.sireId),
+      damId: parsedDamId,
+      sireId: parsedSireId,
       dateOfBirth: req.body.dateOfBirth && !isNaN(Date.parse(req.body.dateOfBirth)) ? new Date(req.body.dateOfBirth) : undefined,
       purchaseDate: req.body.purchaseDate && !isNaN(Date.parse(req.body.purchaseDate)) ? new Date(req.body.purchaseDate) : undefined,
     };
 
     const cattle = await prisma.cattle.create({ data });
     res.status(201).json(cattle);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Create Cattle Error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message || 'Failed to register cattle. Please check your inputs.' });
   }
 };
 
@@ -223,8 +262,29 @@ export const updateCattle = async (req: Request, res: Response): Promise<void> =
     if (data.weight !== undefined) data.weight = parseNum(data.weight);
     if (data.purchasePrice !== undefined) data.purchasePrice = parseNum(data.purchasePrice, 0);
     if (data.salePrice !== undefined) data.salePrice = parseNum(data.salePrice, 0);
-    if (data.damId !== undefined) data.damId = parseNum(data.damId);
-    if (data.sireId !== undefined) data.sireId = parseNum(data.sireId);
+    
+    if (data.damId !== undefined) {
+      data.damId = parseNum(data.damId);
+      if (data.damId) {
+        const dam = await prisma.cattle.findFirst({ where: { id: data.damId, userId } });
+        if (!dam) {
+          res.status(400).json({ error: `Dam ID ${data.damId} not found.` });
+          return;
+        }
+      }
+    }
+    
+    if (data.sireId !== undefined) {
+      data.sireId = parseNum(data.sireId);
+      if (data.sireId) {
+        const sire = await prisma.cattle.findFirst({ where: { id: data.sireId, userId } });
+        if (!sire) {
+          res.status(400).json({ error: `Sire ID ${data.sireId} not found.` });
+          return;
+        }
+      }
+    }
+
     if (data.dateOfBirth) data.dateOfBirth = new Date(data.dateOfBirth);
     if (data.purchaseDate) data.purchaseDate = new Date(data.purchaseDate);
 
@@ -239,9 +299,9 @@ export const updateCattle = async (req: Request, res: Response): Promise<void> =
     } catch (cacheErr) {}
 
     res.json(cattle);
-  } catch (err) {
+  } catch (err: any) {
     console.error('Update Cattle Error:', err);
-    res.status(500).json({ error: 'Internal server error' });
+    res.status(500).json({ error: err.message || 'Update failed' });
   }
 };
 
