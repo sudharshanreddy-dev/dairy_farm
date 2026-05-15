@@ -18,11 +18,13 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
 
     // Attempt to retrieve from cache
     try {
-      const cachedData = await redisClient.get(cacheKey);
-      if (cachedData) {
-        console.log('Serving analytics from Redis cache');
-        res.json(JSON.parse(cachedData));
-        return;
+      if (redisClient.isOpen) {
+        const cachedData = await redisClient.get(cacheKey);
+        if (cachedData) {
+          console.log('Serving analytics from Redis cache');
+          res.json(JSON.parse(cachedData));
+          return;
+        }
       }
     } catch (cacheErr) {
       console.warn('Redis cache read error:', cacheErr);
@@ -158,7 +160,9 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
 
     // Store in cache for 1 hour
     try {
-      await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+      if (redisClient.isOpen) {
+        await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
+      }
     } catch (cacheErr) {
       console.warn('Redis cache write error:', cacheErr);
     }

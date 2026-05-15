@@ -18,6 +18,8 @@ export const connectRedis = async () => {
 };
 export const clearAnalyticsCache = async (userId: number) => {
   try {
+    if (!redisClient.isOpen) return;
+    
     const pattern = `analytics:${userId}:*`;
     const keys = await redisClient.keys(pattern);
     if (keys.length > 0) {
