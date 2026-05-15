@@ -61,7 +61,7 @@ export default function Community() {
       <View style={s.cardHeader}>
         <View style={s.authorDot}><Text style={{ fontSize: 14 }}>👤</Text></View>
         <View style={{ flex: 1 }}>
-          <Text style={s.author}>{item.author}</Text>
+          <Text style={s.author}>{item.user?.username || 'Farmer'}</Text>
           <Text style={s.date}>{getRelativeTime(item.createdAt)}</Text>
         </View>
       </View>

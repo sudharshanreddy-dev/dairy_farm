@@ -102,7 +102,7 @@ export default function CommunityDetail() {
                <Text style={{ fontSize: 16 }}>👤</Text>
             </View>
             <View>
-              <Text style={[s.authorName, { color: colors.text }]}>{post.author}</Text>
+              <Text style={[s.authorName, { color: colors.text }]}>{post.user?.username || 'Farmer'}</Text>
               <Text style={[s.postDate, { color: colors.muted }]}>{getRelativeTime(post.createdAt)}</Text>
             </View>
           </View>
@@ -122,7 +122,7 @@ export default function CommunityDetail() {
              comment={c} 
              depth={0} 
              onReply={setReplyingTo} 
-             postAuthor={post.author} 
+             postAuthorId={post.authorId} 
              colors={colors} 
              isDark={isDark} 
           />
@@ -140,7 +140,7 @@ export default function CommunityDetail() {
          <View style={{ flex: 1 }}>
            {replyingTo && (
              <View style={s.replyingToHeader}>
-               <Text style={[s.replyingToText, { color: colors.muted }]}>Replying to {replyingTo.author}</Text>
+               <Text style={[s.replyingToText, { color: colors.muted }]}>Replying to {replyingTo.user?.username}</Text>
                <TouchableOpacity onPress={() => setReplyingTo(null)}>
                  <MaterialCommunityIcons name="close" size={16} color={colors.muted} />
                </TouchableOpacity>
@@ -167,8 +167,8 @@ export default function CommunityDetail() {
   );
 }
 
-const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }: any) => {
-  const isAuthor = comment.author === postAuthor;
+const CommentItem = ({ comment, depth = 0, onReply, postAuthorId, colors, isDark }: any) => {
+  const isAuthor = comment.authorId === postAuthorId;
   const [expanded, setExpanded] = useState(false);
   const hasReplies = comment.replies && comment.replies.length > 0;
 
@@ -177,7 +177,7 @@ const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }
       <View style={[s.commentCard, depth > 0 && { borderBottomWidth: 0, paddingVertical: 12 }]}>
          <View style={s.commentHead}>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 6 }}>
-              <Text style={[s.commentAuthor, { color: isAuthor ? colors.accent : colors.text }]}>{comment.author}</Text>
+              <Text style={[s.commentAuthor, { color: isAuthor ? colors.accent : colors.text }]}>{comment.user?.username || 'Farmer'}</Text>
               {isAuthor && <View style={[s.authorBadge, { backgroundColor: colors.accent }]}><Text style={s.authorBadgeText}>Author</Text></View>}
             </View>
             <Text style={[s.commentDate, { color: colors.muted }]}>{getRelativeTime(comment.createdAt)}</Text>
@@ -197,7 +197,7 @@ const CommentItem = ({ comment, depth = 0, onReply, postAuthor, colors, isDark }
          </View>
       </View>
       {expanded && hasReplies && comment.replies.map((reply: any) => (
-        <CommentItem key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} postAuthor={postAuthor} colors={colors} isDark={isDark} />
+        <CommentItem key={reply.id} comment={reply} depth={depth + 1} onReply={onReply} postAuthorId={postAuthorId} colors={colors} isDark={isDark} />
       ))}
     </View>
   );

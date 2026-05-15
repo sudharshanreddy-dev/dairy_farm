@@ -7,7 +7,7 @@ import Constants from 'expo-constants';
 
 // Get the IP address of the machine running the Expo packager
 const debuggerHost = Constants.expoConfig?.hostUri;
-const hostIP = debuggerHost ? debuggerHost.split(':')[0] : '10.172.87.157';
+const hostIP = debuggerHost ? debuggerHost.split(':')[0] : '192.168.1.76';
 
 export const BACKEND_IP = hostIP;
 export const BACKEND_PORT = '3000';

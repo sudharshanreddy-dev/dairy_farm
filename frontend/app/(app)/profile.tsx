@@ -89,6 +89,17 @@ export default function Profile() {
 
         <View style={styles.form}>
            <View style={styles.inputGroup}>
+              <Text style={[styles.label, { color: colors.muted }]}>Username</Text>
+              <TextInput
+                style={[styles.input, { backgroundColor: colors.surface2, color: colors.muted, borderColor: colors.border }]}
+                value={user?.username || ''}
+                editable={false}
+                placeholder="Username"
+                placeholderTextColor={colors.muted}
+              />
+           </View>
+
+           <View style={styles.inputGroup}>
               <Text style={[styles.label, { color: colors.muted }]}>Full Name</Text>
               <TextInput
                 style={[styles.input, { backgroundColor: colors.surface, color: colors.text, borderColor: colors.border }]}
