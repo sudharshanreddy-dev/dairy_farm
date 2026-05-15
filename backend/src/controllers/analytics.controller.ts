@@ -31,7 +31,7 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
           return;
         }
       }
-    } catch (cacheErr) {
+    } catch (cacheErr: any) {
       console.warn('Redis cache read skipped:', cacheErr.message || cacheErr);
     }
 
@@ -168,12 +168,12 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
       if (redisClient.isOpen) {
         await redisClient.setEx(cacheKey, 3600, JSON.stringify(result));
       }
-    } catch (cacheErr) {
+    } catch (cacheErr: any) {
       console.warn('Redis cache write error:', cacheErr);
     }
 
     res.json(result);
-  } catch (err) {
+  } catch (err: any) {
     console.error(err);
     res.status(500).json({ error: 'Internal server error' });
   }
