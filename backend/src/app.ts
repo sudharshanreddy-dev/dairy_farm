@@ -24,6 +24,10 @@ app.get('/health', (req, res) => {
   res.json({ status: 'OK', message: 'Dairy Farm API is running' });
 });
 
+app.get('/ping', (req, res) => {
+  res.send('pong');
+});
+
 app.use('/api/auth', authRoutes);
 app.use('/api/cattle', cattleRoutes);
 app.use('/api/farm', farmRoutes);

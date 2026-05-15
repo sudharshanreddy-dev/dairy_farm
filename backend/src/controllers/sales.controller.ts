@@ -43,7 +43,7 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
       return;
     }
 
-    const { date, buyerName, quantityLiters, pricePerLiter, totalAmount, paymentStatus, notes } = value;
+    const { date, buyerName, quantityLiters, pricePerLiter, totalAmount, paymentStatus, paymentMethod, notes } = value;
     const record = await prisma.sale.create({
       data: {
         userId: req.user!.userId,
@@ -53,6 +53,7 @@ export const createSale = async (req: Request, res: Response): Promise<void> => 
         pricePerLiter: Number(pricePerLiter),
         totalAmount: Number(totalAmount) || (Number(quantityLiters) * Number(pricePerLiter)),
         paymentStatus,
+        paymentMethod,
         notes
       }
     });

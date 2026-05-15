@@ -38,5 +38,6 @@ export const saleSchema = Joi.object({
   pricePerLiter: Joi.number().positive().required(),
   totalAmount: Joi.number().min(0).optional(),
   paymentStatus: Joi.string().valid('Paid', 'Pending').default('Paid'),
+  paymentMethod: Joi.string().allow('', null),
   notes: Joi.string().allow('', null)
 });
