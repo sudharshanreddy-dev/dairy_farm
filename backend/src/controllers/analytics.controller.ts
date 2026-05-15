@@ -16,10 +16,15 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
 
     const cacheKey = `analytics:${userId}:${start.getTime()}:${end.getTime()}`;
 
-    // Attempt to retrieve from cache
+    // Attempt to retrieve from cache with a 500ms timeout
     try {
       if (redisClient.isOpen) {
-        const cachedData = await redisClient.get(cacheKey);
+        // Race the redis get against a 500ms timeout
+        const cachedData = await Promise.race([
+          redisClient.get(cacheKey),
+          new Promise<null>((_, reject) => setTimeout(() => reject(new Error('Redis Timeout')), 500))
+        ]);
+
         if (cachedData) {
           console.log('Serving analytics from Redis cache');
           res.json(JSON.parse(cachedData));
@@ -27,7 +32,7 @@ export const getAnalytics = async (req: Request, res: Response): Promise<void> =
         }
       }
     } catch (cacheErr) {
-      console.warn('Redis cache read error:', cacheErr);
+      console.warn('Redis cache read skipped:', cacheErr.message || cacheErr);
     }
 
     // 1. Revenue
